@@ -2,7 +2,7 @@
 #ifndef COMPUTERCONTROLL_COMMUNICATIONCONFIG_HPP
 #define COMPUTERCONTROLL_COMMUNICATIONCONFIG_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 struct UDPData {
 	uint32_t index;
