@@ -6,9 +6,8 @@ int main() {
 	Ethernet eth;
 
 	while (true) {
-		eth.update();
-
-		// std::cout << eth._udpData.index << " | " << eth._udpData.timestamp << " | " << eth._udpData.position << "\n";
+		auto udpData = eth.getUDPData();
+		std::cout << udpData.index << " | " << udpData.timestamp << " | " << udpData.position << "\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
-
 }

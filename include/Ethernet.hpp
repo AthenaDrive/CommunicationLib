@@ -17,16 +17,20 @@
 class Ethernet {
 public:
 	Ethernet();
-
-	void update();
-	int getIteration();
-	float getPosition();
-
-	UDPData _udpData;
+	~Ethernet();
+	UDPData getUDPData();
 
 private:
-	std::jthread _udpReceiveThread;
 	std::atomic_bool _stopFlag = false;
+
+	void _readUDP();
+	void _sendUDP();
+	void _readTCP();
+	void _sendTCP();
+
+	UDPData _udpData{};
+	std::mutex _udpDataMutex;
+	std::jthread _udpDataThread;
 
 	asio::io_context _io_context;
 	asio::ip::udp::socket _socket;
@@ -34,9 +38,6 @@ private:
 	std::array<char, 4 * 64> _buffer;
 
 	std::chrono::steady_clock::time_point _lastPacketTime;
-	int _packetCount = 0;
-	double _sumDt = 0;
-	double _sumDtSq = 0;
 };
 
 
