@@ -18,26 +18,31 @@ class Ethernet {
 public:
 	Ethernet();
 	~Ethernet();
+
 	UDPData getUDPData();
+
+	std::atomic<std::array<int32_t, 4>> bufferTcpSend;
+	std::atomic<std::array<int32_t, 4>> bufferTcpRecv;
 
 private:
 	std::atomic_bool _stopFlag = false;
 
-	void _readUDP();
-	void _sendUDP();
-	void _readTCP();
-	void _sendTCP();
+	void _updateUDP();
+	void _updateTCP();
 
 	UDPData _udpData{};
 	std::mutex _udpDataMutex;
 	std::jthread _udpDataThread;
 
-	asio::io_context _io_context;
-	asio::ip::udp::socket _socket;
-	asio::ip::udp::endpoint _sender_endpoint;
-	std::array<char, 4 * 64> _buffer;
+	std::mutex _tcpDataMutex;
+	std::jthread _tcpDataThread;
 
-	std::chrono::steady_clock::time_point _lastPacketTime;
+	asio::io_context _ioContext;
+	asio::ip::udp::socket _socketUDP;
+	asio::ip::tcp::socket _socketTCP;
+	asio::ip::udp::endpoint _senderEndpointUDP;
+	asio::ip::tcp::endpoint _senderEndpointTCP;
+	std::array<char, 4 * 64> _bufferUDP;
 };
 
 

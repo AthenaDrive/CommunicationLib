@@ -3,19 +3,24 @@
 
 #include <bitset>
 #include <cmath>
-#include <iomanip>
+#include <vector>
 
 Ethernet::Ethernet()
-    : _socket(_io_context, asio::ip::udp::endpoint(asio::ip::make_address("192.168.0.17"), 5000)) {
+    : _socketUDP(_ioContext, asio::ip::udp::endpoint(asio::ip::make_address_v4("192.168.0.17"), 5000)),
+	  _socketTCP(_ioContext) {
 
-	_udpDataThread = std::jthread(&Ethernet::_readUDP, this);
+	_udpDataThread = std::jthread(&Ethernet::_updateUDP, this);
+	_tcpDataThread = std::jthread(&Ethernet::_updateTCP, this);
 }
 
 Ethernet::~Ethernet() {
 	_stopFlag = true;
 	if (_udpDataThread.joinable()) {
 		_udpDataThread.join();
-		std::cout << "Joined thread." << std::endl;
+	}
+
+	if (_tcpDataThread.joinable()) {
+		_tcpDataThread.join();
 	}
 }
 
@@ -24,16 +29,16 @@ UDPData Ethernet::getUDPData() {
 	return _udpData;
 }
 
-void Ethernet::_readUDP() {
+void Ethernet::_updateUDP() {
 	while (!_stopFlag) {
-		size_t len = _socket.receive_from(asio::buffer(_buffer), _sender_endpoint);
+		size_t len = _socketUDP.receive_from(asio::buffer(_bufferUDP), _senderEndpointUDP);
 
 		if (len < 4) {
 			return;
 		}
 
 		uint32_t header;
-		memcpy(&header, _buffer.data(), 4);
+		memcpy(&header, _bufferUDP.data(), 4);
 
 		int numValues = 0;
 		std::vector<int> positions;
@@ -52,8 +57,34 @@ void Ethernet::_readUDP() {
 		for (int i = 0; i < numValues; i++) {
 			int packetIx = positions[i];
 			auto* base = reinterpret_cast<std::byte*>(&_udpData);
-			std::memcpy(base + offsets[packetIx], _buffer.data() + 4 * (i+1), 4);
+			std::memcpy(base + offsets[packetIx], _bufferUDP.data() + 4 * (i+1), 4);
 		}
 	}
 }
 
+void Ethernet::_updateTCP() {
+	asio::ip::tcp::endpoint ep(asio::ip::make_address_v4("192.168.0.10"), 5001);
+
+	while (!_stopFlag) {
+		if (!_socketTCP.is_open()) {
+			try {
+				_socketTCP.connect(ep);
+				std::cout << "TCP connected" << std::endl;
+			} catch (const std::system_error&) {
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+				continue;
+			}
+		}
+
+		auto arrSend = bufferTcpSend.load();
+		try {
+			asio::write(_socketTCP, asio::buffer(arrSend));
+
+			std::array<int32_t, 4> arrRecv;
+			asio::read(_socketTCP, asio::buffer(arrRecv));
+			bufferTcpRecv.store(arrRecv);
+		} catch (const std::system_error&) {
+			_socketTCP.close();
+		}
+	}
+}
