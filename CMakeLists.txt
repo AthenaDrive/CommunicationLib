@@ -22,7 +22,7 @@ target_include_directories(ComputerControll PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(ComputerControll PRIVATE ws2_32)
+    target_link_libraries(ComputerControll PRIVATE ws2_32 atomic)
 endif()
 
 target_compile_features(ComputerControll PRIVATE cxx_std_20)
