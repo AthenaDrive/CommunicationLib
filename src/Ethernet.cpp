@@ -26,7 +26,7 @@ Ethernet::~Ethernet() {
 	}
 }
 
-UDPData Ethernet::getUDPData() {
+std::vector<UDPData> Ethernet::getUDPData() {
 	std::lock_guard lock(_udpDataMutex);
 	return _udpData;
 }
@@ -34,36 +34,55 @@ UDPData Ethernet::getUDPData() {
 void Ethernet::_updateUDP() {
 
 	while (!_stopFlag) {
+		int offset = 0;
 		size_t len = _socketUDP.receive_from(asio::buffer(_bufferUDP), _senderEndpointUDP);
+		if (len < 4) {return;}
 
-		if (len < 4) {
-			return;
+		std::vector<UDPData> newPackets;
+		while (len > offset) {
+			newPackets.emplace_back(readSingleUDP(offset, len));
 		}
-
-		uint32_t header;
-		memcpy(&header, _bufferUDP.data(), 4);
-
-		int numValues = 0;
-		std::vector<int> positions;
-
-		std::bitset<32> headerBits(header);
-		for (int i = 0; i < 32; i++) {
-			if (headerBits[i]) {
-				numValues++;
-				positions.push_back(i);
-			}
-		}
-
-		if (len != (4 * (numValues + 1))) {return;}
 
 		std::lock_guard lock(_udpDataMutex);
-		for (int i = 0; i < numValues; i++) {
-			int packetIx = positions[i];
-			auto* base = reinterpret_cast<std::byte*>(&_udpData);
-			std::memcpy(base + offsets[packetIx], _bufferUDP.data() + 4 * (i+1), 4);
-		}
+		_udpData = newPackets;
 	}
 }
+
+UDPData Ethernet::readSingleUDP(int &offset, int len) {
+	if (len <= offset) {
+		throw std::runtime_error("Invalid.\n");
+	}
+
+	uint32_t header;
+	std::memcpy(&header, _bufferUDP.data() + offset, 4);
+	offset += 4;
+
+	int numValues = 0;
+	std::vector<int> positions = {};
+
+	std::bitset<32> headerBits(header);
+	for (int i = 0; i < 32; i++) {
+		if (headerBits[i]) {
+			numValues++;
+			positions.push_back(i);
+		}
+	}
+
+	if (len <= offset) {
+		throw std::runtime_error("Invalid.\n");
+	}
+
+	UDPData udpData{};
+	for (int i = 0; i < numValues; i++) {
+		int packetIx = positions[i];
+		auto* base = reinterpret_cast<std::byte*>(&udpData);
+		std::memcpy(base + offsets[packetIx], _bufferUDP.data() + offset, 4);
+		offset += 4;
+	}
+
+	return udpData;
+}
+
 
 void Ethernet::_updateTCP() {
 

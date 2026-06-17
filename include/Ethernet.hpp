@@ -19,8 +19,9 @@ public:
 	Ethernet();
 	~Ethernet();
 
-	UDPData getUDPData();
+	std::vector<UDPData> getUDPData();
 
+	// Temporary for testing.
 	std::atomic<std::array<int32_t, 4>> bufferTcpSend;
 	std::atomic<std::array<int32_t, 4>> bufferTcpRecv;
 
@@ -28,9 +29,10 @@ private:
 	std::atomic_bool _stopFlag = false;
 
 	void _updateUDP();
+	UDPData readSingleUDP(int &offset, int len);
 	void _updateTCP();
 
-	UDPData _udpData{};
+	std::vector<UDPData> _udpData{};
 	std::mutex _udpDataMutex;
 	std::jthread _udpDataThread;
 
@@ -42,7 +44,7 @@ private:
 	asio::ip::tcp::endpoint _senderEndpointTCP;
 	asio::ip::udp::socket _socketUDP;
 	asio::ip::tcp::socket _socketTCP;
-	std::array<char, 4 * 64> _bufferUDP;
+	std::array<char, 4 * 1024> _bufferUDP;
 };
 
 
