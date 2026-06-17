@@ -38,10 +38,10 @@ private:
 	std::jthread _tcpDataThread;
 
 	asio::io_context _ioContext;
-	asio::ip::udp::socket _socketUDP;
-	asio::ip::tcp::socket _socketTCP;
 	asio::ip::udp::endpoint _senderEndpointUDP;
 	asio::ip::tcp::endpoint _senderEndpointTCP;
+	asio::ip::udp::socket _socketUDP;
+	asio::ip::tcp::socket _socketTCP;
 	std::array<char, 4 * 64> _bufferUDP;
 };
 

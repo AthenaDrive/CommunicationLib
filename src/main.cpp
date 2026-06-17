@@ -10,7 +10,7 @@ int main() {
 
 	while (true) {
 		auto udpData = eth.getUDPData();
-		// std::cout << udpData.index << " | " << udpData.timestamp << " | " << udpData.position << "\n";
+		std::cout << udpData.index << " | " << udpData.timestamp << " | " << udpData.position << "\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		std::atomic<std::array<int32_t, 4>> send{{value0++, value1++, 0, 0}};

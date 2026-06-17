@@ -6,7 +6,9 @@
 #include <vector>
 
 Ethernet::Ethernet()
-    : _socketUDP(_ioContext, asio::ip::udp::endpoint(asio::ip::make_address_v4("192.168.0.17"), 5000)),
+    : _senderEndpointUDP(asio::ip::make_address_v4("192.168.0.17"), 5000),
+	  _senderEndpointTCP(asio::ip::make_address_v4("192.168.0.18"), 5001),
+	  _socketUDP(_ioContext, _senderEndpointUDP),
 	  _socketTCP(_ioContext) {
 
 	_udpDataThread = std::jthread(&Ethernet::_updateUDP, this);
@@ -30,6 +32,7 @@ UDPData Ethernet::getUDPData() {
 }
 
 void Ethernet::_updateUDP() {
+
 	while (!_stopFlag) {
 		size_t len = _socketUDP.receive_from(asio::buffer(_bufferUDP), _senderEndpointUDP);
 
@@ -63,12 +66,11 @@ void Ethernet::_updateUDP() {
 }
 
 void Ethernet::_updateTCP() {
-	asio::ip::tcp::endpoint ep(asio::ip::make_address_v4("192.168.0.10"), 5001);
 
 	while (!_stopFlag) {
 		if (!_socketTCP.is_open()) {
 			try {
-				_socketTCP.connect(ep);
+				_socketTCP.connect(_senderEndpointTCP);
 				std::cout << "TCP connected" << std::endl;
 			} catch (const std::system_error&) {
 				std::this_thread::sleep_for(std::chrono::seconds(1));
