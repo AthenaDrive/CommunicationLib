@@ -5,9 +5,6 @@ int main() {
 
 	Ethernet eth;
 
-	int32_t value0 = 1024;
-	int32_t value1 = 0;
-
 	while (true) {
 		auto udpDataArr = eth.getUDPData();
 
@@ -18,10 +15,14 @@ int main() {
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-		std::atomic<std::array<int32_t, 4>> send{{value0++, value1++, 0, 0}};
+		std::atomic<std::array<int32_t, 1>> send{{0b01111}};
 		eth.bufferTcpSend.store(send);
 
 		auto recv = eth.bufferTcpRecv.load();
-		std::cout << recv[0] << ":" << recv[1] << "\n";
+		std::cout << "Count: " << eth.numTCPReads.load() << ": ";
+		for (int i = 0; i < 32; i++) {
+			std::cout << recv[i];
+		}
+		std::cout << "\n";
 	}
 }

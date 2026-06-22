@@ -83,7 +83,6 @@ UDPDataFromPeripheral Ethernet::readSingleUDP(int &offset, int len) {
 	return udpData;
 }
 
-
 void Ethernet::_updateTCP() {
 
 	while (!_stopFlag) {
@@ -101,9 +100,10 @@ void Ethernet::_updateTCP() {
 		try {
 			asio::write(_socketTCP, asio::buffer(arrSend));
 
-			std::array<int32_t, 4> arrRecv;
-			asio::read(_socketTCP, asio::buffer(arrRecv));
+			std::array<int32_t, 256> arrRecv{};
+			size_t len = asio::read(_socketTCP, asio::buffer(arrRecv));
 			bufferTcpRecv.store(arrRecv);
+			numTCPReads.fetch_add(1);
 		} catch (const std::system_error&) {
 			_socketTCP.close();
 		}

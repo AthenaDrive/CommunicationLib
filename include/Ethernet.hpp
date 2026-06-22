@@ -22,8 +22,9 @@ public:
 	std::vector<UDPDataFromPeripheral> getUDPData();
 
 	// Temporary for testing.
-	std::atomic<std::array<int32_t, 4>> bufferTcpSend;
-	std::atomic<std::array<int32_t, 4>> bufferTcpRecv;
+	std::atomic<std::array<int32_t, 1>> bufferTcpSend;
+	std::atomic<std::array<int32_t, 256>> bufferTcpRecv;
+	std::atomic_uint32_t numTCPReads = 0;
 
 private:
 	std::atomic_bool _stopFlag = false;
