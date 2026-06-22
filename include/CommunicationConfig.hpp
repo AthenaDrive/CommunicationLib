@@ -1,10 +1,8 @@
 
-#ifndef COMPUTERCONTROLL_COMMUNICATIONCONFIG_HPP
-#define COMPUTERCONTROLL_COMMUNICATIONCONFIG_HPP
-
+#pragma once
 #include <cstdint>
 
-struct UDPData {
+struct UDPDataFromPeripheral {
 	uint32_t index;
 	uint32_t timestamp;
 	float position;
@@ -21,21 +19,31 @@ struct UDPData {
 	uint32_t loopTimeSecondary;
 };
 
-constexpr size_t offsets[] = {
-	offsetof(UDPData, index),
-	offsetof(UDPData, timestamp),
-	offsetof(UDPData, position),
-	offsetof(UDPData, velocity),
-	offsetof(UDPData, acceleration),
-	offsetof(UDPData, torque),
-	offsetof(UDPData, phaseCurrentA),
-	offsetof(UDPData, phaseCurrentB),
-	offsetof(UDPData, phaseCurrentC),
-	offsetof(UDPData, busCurrent),
-	offsetof(UDPData, busVoltage),
-	offsetof(UDPData, errorRegister),
-	offsetof(UDPData, loopTimeFOC),
-	offsetof(UDPData, loopTimeSecondary)
+constexpr size_t offsetsUDPFromPeripheral[] = {
+	offsetof(UDPDataFromPeripheral, index),
+	offsetof(UDPDataFromPeripheral, timestamp),
+	offsetof(UDPDataFromPeripheral, position),
+	offsetof(UDPDataFromPeripheral, velocity),
+	offsetof(UDPDataFromPeripheral, acceleration),
+	offsetof(UDPDataFromPeripheral, torque),
+	offsetof(UDPDataFromPeripheral, phaseCurrentA),
+	offsetof(UDPDataFromPeripheral, phaseCurrentB),
+	offsetof(UDPDataFromPeripheral, phaseCurrentC),
+	offsetof(UDPDataFromPeripheral, busCurrent),
+	offsetof(UDPDataFromPeripheral, busVoltage),
+	offsetof(UDPDataFromPeripheral, errorRegister),
+	offsetof(UDPDataFromPeripheral, loopTimeFOC),
+	offsetof(UDPDataFromPeripheral, loopTimeSecondary)
 };
 
-#endif //COMPUTERCONTROLL_COMMUNICATIONCONFIG_HPP
+struct UDPDataFromController {
+	float torqueSetpoint;
+	float velocitySetpoint;
+	float positionSetpoint;
+};
+
+constexpr size_t offsetsUDPFromController[] = {
+	offsetof(UDPDataFromController, torqueSetpoint),
+	offsetof(UDPDataFromController, velocitySetpoint),
+	offsetof(UDPDataFromController, positionSetpoint)
+};
