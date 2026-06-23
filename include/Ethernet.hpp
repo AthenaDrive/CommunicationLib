@@ -22,9 +22,10 @@ public:
 	std::vector<UDPDataFromPeripheral> getUDPData();
 
 	// Temporary for testing.
-	std::atomic<std::array<int32_t, 1>> bufferTcpSend;
-	std::atomic<std::array<int32_t, 256>> bufferTcpRecv;
 	std::atomic_uint32_t numTCPReads = 0;
+	void setTCPSend(const std::vector<uint8_t> &vec);
+	void getTCPRecv(std::vector<uint8_t> &vec);
+	std::atomic_bool shouldSendTCP{false};
 
 private:
 	std::atomic_bool _stopFlag = false;
@@ -46,6 +47,11 @@ private:
 	asio::ip::udp::socket _socketUDP;
 	asio::ip::tcp::socket _socketTCP;
 	std::array<char, 4 * 1024> _bufferUDP{};
+
+	std::mutex _tcpRecvBufferMutex;
+	std::mutex _tcpSendBufferMutex;
+	std::vector<uint8_t> _tcpRecvBuffer;
+	std::vector<uint8_t> _tcpSendBuffer;
 };
 
 

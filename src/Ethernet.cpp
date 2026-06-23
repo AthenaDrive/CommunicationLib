@@ -83,6 +83,17 @@ UDPDataFromPeripheral Ethernet::readSingleUDP(int &offset, int len) {
 	return udpData;
 }
 
+void Ethernet::setTCPSend(const std::vector<uint8_t>& vec) {
+	std::lock_guard lock(_tcpSendBufferMutex);
+	_tcpSendBuffer = vec;
+}
+
+void Ethernet::getTCPRecv(std::vector<uint8_t>& vec) {
+	std::lock_guard lock(_tcpRecvBufferMutex);
+	vec = _tcpRecvBuffer;
+}
+
+
 void Ethernet::_updateTCP() {
 
 	while (!_stopFlag) {
@@ -96,14 +107,49 @@ void Ethernet::_updateTCP() {
 			}
 		}
 
-		auto arrSend = bufferTcpSend.load();
-		try {
-			asio::write(_socketTCP, asio::buffer(arrSend));
+		while (!shouldSendTCP) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
 
-			std::array<int32_t, 256> arrRecv{};
-			size_t len = asio::read(_socketTCP, asio::buffer(arrRecv));
-			bufferTcpRecv.store(arrRecv);
+		std::vector<uint8_t> tcpSend;
+		{
+			std::lock_guard lock(_tcpSendBufferMutex);
+			tcpSend = _tcpSendBuffer;
+		}
+
+		std::cout << "VL: " << tcpSend.size() << "\n";
+		uint16_t length = (tcpSend.at(1) << 8) + tcpSend.at(0);
+		uint16_t identifier = (tcpSend.at(3) << 8) + tcpSend.at(2);
+
+		std::cout << "I: " << identifier << "\n";
+		std::cout << "L: " << length << "\n";
+
+		try {
+			asio::write(_socketTCP, asio::buffer(tcpSend));
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+			// Should wrap read in try catch
+			uint32_t lengthPrefix;
+			ssize_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
+
+			if (len != sizeof(lengthPrefix)) {
+				std::cout << "FW\n";
+				//Something fucky wucky.
+			}
+
+			uint16_t identifier = lengthPrefix >> 16;
+			uint16_t length = lengthPrefix & 0xFFFF;
+			std::cout << "RI: " << identifier << "\n";
+			std::cout << "RL: " << length << "\n";
+
+			std::vector<uint8_t> recvArr(length);
+			len = asio::read(_socketTCP, asio::buffer(recvArr));
 			numTCPReads.fetch_add(1);
+
+			std::lock_guard lock(_tcpRecvBufferMutex);
+			_tcpRecvBuffer = recvArr;
+			shouldSendTCP.store(false);
+
 		} catch (const std::system_error&) {
 			_socketTCP.close();
 		}
