@@ -117,12 +117,12 @@ void Ethernet::_updateTCP() {
 			tcpSend = _tcpSendBuffer;
 		}
 
-		std::cout << "VL: " << tcpSend.size() << "\n";
+		// std::cout << "VL: " << tcpSend.size() << "\n";
 		uint16_t length = (tcpSend.at(1) << 8) + tcpSend.at(0);
 		uint16_t identifier = (tcpSend.at(3) << 8) + tcpSend.at(2);
 
-		std::cout << "I: " << identifier << "\n";
-		std::cout << "L: " << length << "\n";
+		// std::cout << "I: " << identifier << "\n";
+		// std::cout << "L: " << length << "\n";
 
 		try {
 			asio::write(_socketTCP, asio::buffer(tcpSend));
@@ -139,8 +139,8 @@ void Ethernet::_updateTCP() {
 
 			uint16_t identifier = lengthPrefix >> 16;
 			uint16_t length = lengthPrefix & 0xFFFF;
-			std::cout << "RI: " << identifier << "\n";
-			std::cout << "RL: " << length << "\n";
+			// std::cout << "RI: " << identifier << "\n";
+			// std::cout << "RL: " << length << "\n";
 
 			std::vector<uint8_t> recvArr(length);
 			len = asio::read(_socketTCP, asio::buffer(recvArr));
