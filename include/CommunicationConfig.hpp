@@ -3,7 +3,6 @@
 #include <cstdint>
 
 struct UDPDataFromPeripheral {
-	uint32_t index;
 	uint32_t timestamp;
 	float position;
 	float velocity;
@@ -20,7 +19,6 @@ struct UDPDataFromPeripheral {
 };
 
 constexpr size_t offsetsUDPFromPeripheral[] = {
-	offsetof(UDPDataFromPeripheral, index),
 	offsetof(UDPDataFromPeripheral, timestamp),
 	offsetof(UDPDataFromPeripheral, position),
 	offsetof(UDPDataFromPeripheral, velocity),
