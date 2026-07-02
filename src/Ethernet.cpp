@@ -117,32 +117,19 @@ void Ethernet::_updateTCP() {
 			tcpSend = _tcpSendBuffer;
 		}
 
-		// std::cout << "VL: " << tcpSend.size() << "\n";
-		uint16_t length = (tcpSend.at(1) << 8) + tcpSend.at(0);
-		uint16_t identifier = (tcpSend.at(3) << 8) + tcpSend.at(2);
-
-		// std::cout << "I: " << identifier << "\n";
-		// std::cout << "L: " << length << "\n";
-
 		try {
 			asio::write(_socketTCP, asio::buffer(tcpSend));
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 			// Should wrap read in try catch
 			uint32_t lengthPrefix;
-			ssize_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
+			std::size_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
 
 			if (len != sizeof(lengthPrefix)) {
-				std::cout << "FW\n";
 				//Something fucky wucky.
 			}
 
-			uint16_t identifier = lengthPrefix >> 16;
-			uint16_t length = lengthPrefix & 0xFFFF;
-			// std::cout << "RI: " << identifier << "\n";
-			// std::cout << "RL: " << length << "\n";
-
-			std::vector<uint8_t> recvArr(length);
+			std::vector<uint8_t> recvArr(lengthPrefix & 0xFFFF);
 			len = asio::read(_socketTCP, asio::buffer(recvArr));
 			numTCPReads.fetch_add(1);
 
@@ -150,7 +137,7 @@ void Ethernet::_updateTCP() {
 			_tcpRecvBuffer = recvArr;
 			shouldSendTCP.store(false);
 
-		} catch (const std::system_error&) {
+		} catch (const asio::system_error&) {
 			_socketTCP.close();
 		}
 	}
