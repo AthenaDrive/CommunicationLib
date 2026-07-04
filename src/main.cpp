@@ -1,7 +1,74 @@
 
+#include <bitset>
+
 #include "Ethernet.hpp"
 #include "Protocol.hpp"
 #include "RuntimeError.hpp"
+
+dataTCP parseTcpPacket(const std::vector<uint8_t> &packet) {
+	if (packet.size() < 4) {
+		throw RuntimeError("Invalid TCP packet. Packet size: " + std::to_string(packet.size()) + "\n");
+	}
+
+	dataTCP out;
+
+	uint32_t header{};
+	memcpy(&header, packet.data(), 4);
+	uint32_t packetOffset = 4;
+
+	std::cout << "Header:" << header << "\n";
+	std::bitset<32> headerBits(header);
+	if (headerBits[0]) {
+		// Was command, ESP is just confirming command executed.
+		// TODO: read back command to clear from executed command history?
+
+		out.readWriteFlag = true;
+		return out;
+	}
+	out.readWriteFlag = false;
+
+	float tmpFloat;
+	uint32_t tmpUint;
+	for (int i = 1; i < 32; i++) {
+		if (headerBits[i]) {
+			std::cout << "ix: " << i << "\n";
+
+			switch (1 << i) {
+				case (TCP_DATA_BUS_VOLTAGE): {
+					memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+					out.busVoltage = tmpFloat;
+				} break;
+
+				case (TCP_DATA_BUS_CURRENT): {
+					memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+					out.busCurrent = tmpFloat;
+				} break;
+
+				case (TCP_DATA_LED_STATUS): {
+					memcpy(&tmpUint, packet.data() + packetOffset, 4);
+					out.ledStatus = tmpUint;
+				}
+
+				default: {
+					// Error?
+				} break;
+			}
+
+			packetOffset += 4;
+		}
+	}
+
+	std::cout << "Data size: " << packet.size() << " | Offset: " << packetOffset << "\n";
+	if (packetOffset < packet.size()) {
+		uint32_t h;
+		memcpy(&h, packet.data() + packetOffset, 4);
+		packetOffset += 4;
+		memcpy(&tmpUint, packet.data() + packetOffset, 4);
+		std::cout << "Next header: " << h << " | Led: " << tmpUint << "\n";
+	}
+
+	return out;
+}
 
 std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& values) {
 	std::vector<uint32_t> headers;
@@ -45,7 +112,7 @@ std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector
 
 	std::vector<uint8_t> outVec{};
 	for (int i = 0; i < headers.size(); i++) {
-		std::cout << "Header size: " << headers.size() << " | i: " << i << " | NumVal: " << numValues << "\n";
+		// std::cout << "Header size: " << headers.size() << " | i: " << i << " | NumVal: " << numValues << "\n";
 		uint32_t prefix = PREFIX(((2 * (headers.size() - i) - 1) + numValues) * 4);
 		outVec.push_back((prefix >> 0) & 0xFF);
 		outVec.push_back((prefix >> 8) & 0xFF);
@@ -57,7 +124,7 @@ std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector
 		outVec.push_back((headers[i] >> 16) & 0xFF);
 		outVec.push_back((headers[i] >> 24) & 0xFF);
 
-		std::cout << "Prefix: " << prefix << " | Header: " << headers[i] << "\n";
+		// std::cout << "Prefix: " << prefix << " | Header: " << headers[i] << "\n";
 		for (auto &v : packetVals[i]) {
 			outVec.push_back((v >> 0) & 0xFF);
 			outVec.push_back((v >> 8) & 0xFF);
@@ -65,7 +132,7 @@ std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector
 			outVec.push_back((v >> 24) & 0xFF);
 			numValues--;
 
-			std::cout << "V: " << v << "\n";
+			// std::cout << "V: " << v << "\n";
 		}
 	}
 
@@ -106,7 +173,7 @@ std::vector<uint8_t> getTcpDataPacket(const std::vector<std::vector<uint32_t>>& 
 		outVec.push_back((headers[i] >> 16) & 0xFF);
 		outVec.push_back((headers[i] >> 24) & 0xFF);
 
-		std::cout << "Prefix: " << prefix << " | Header: " << headers[i] << "\n";
+		// std::cout << "Prefix: " << prefix << " | Header: " << headers[i] << "\n";
 	}
 
 	return outVec;
@@ -126,35 +193,45 @@ int main() {
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-		// auto outVec = getTcpDataPacket({
-		// 	{TCP_DATA, TCP_DATA_BUS_CURRENT, TCP_DATA_BUS_VOLTAGE},
-		// 	{TCP_DATA, TCP_DATA_BUS_CURRENT, TCP_DATA_BUS_VOLTAGE},
-		// 	{TCP_DATA, TCP_DATA_BUS_CURRENT, TCP_DATA_BUS_VOLTAGE}
-		// });
+		std::vector<uint8_t> outVec{};
 
-		auto outVec = getTcpCommandPacket({
-			{{TCP_COMMAND, TCP_COMMAND_TORQUE_SETPOINT}, {1010101}},
-			{{TCP_COMMAND, TCP_COMMAND_TORQUE_SETPOINT, TCP_COMMAND_CLEAR_ERROR_REGISTER}, {101, 101, 1}}
+		outVec = getTcpDataPacket({
+			{TCP_DATA, TCP_DATA_LED_STATUS},
+			{TCP_DATA, TCP_DATA_LED_STATUS}
 		});
 
-		std::cout << "Packet: ";
-		for (auto &v : outVec) {
-			std::cout << +v;
-		}
-		std::cout << "\n";
+		outVec = getTcpCommandPacket({
+			{{TCP_COMMAND, TCP_COMMAND_UDP_DATA_CONFIG}, {0b1111}},
+				{{TCP_COMMAND, TCP_COMMAND_UDP_DATA_CONFIG}, {0b1111}}
+		});
 
 		eth.setTCPSend(outVec);
 
-		if (!eth.shouldSendTCP) {
+		if (!eth.shouldSendTCP.load()) {
 			eth.shouldSendTCP.store(true);
 
 			std::vector<uint8_t> recvBuffer{};
 			eth.getTCPRecv(recvBuffer);
-			std::cout << "Count: " << eth.numTCPReads.load() << " | ";
-			for (uint8_t val : recvBuffer) {
-				std::cout << static_cast<int>(val) << " ";
+
+			if (recvBuffer.size() >= 4) {
+				dataTCP outTCP = parseTcpPacket(recvBuffer);
+
+				if (outTCP.readWriteFlag.has_value()) {
+					std::cout << "R/W flag: " << outTCP.readWriteFlag.value() << "\n";
+				}
+
+				if (outTCP.busVoltage.has_value()) {
+					std::cout << "Bus voltage: " << outTCP.busVoltage.value() << "\n";
+				}
+
+				if (outTCP.busCurrent.has_value()) {
+					std::cout << "Bus current: " << outTCP.busCurrent.value() << "\n";
+				}
+
+				if (outTCP.ledStatus.has_value()) {
+					std::cout << "LED Status: " << outTCP.ledStatus.value() << "\n";
+				}
 			}
-			std::cout << "\n";
 		}
 	}
 }

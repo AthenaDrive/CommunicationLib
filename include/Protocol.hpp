@@ -44,6 +44,13 @@
 #define TCP_DATA_PHASE_RMS_VOLTAGE            1 << 10
 #define TCP_DATA_ERROR_REGISTER               1 << 11
 
+struct dataTCP {
+	std::optional<bool> readWriteFlag;
+	std::optional<float> busVoltage;
+	std::optional<float> busCurrent;
+	std::optional<uint32_t> ledStatus;
+};
+
 // TCP COMMANDS
 #define TCP_COMMAND                           1 << 0
 #define TCP_COMMAND_TORQUE_SETPOINT           1 << 1
