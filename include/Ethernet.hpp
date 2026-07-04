@@ -42,8 +42,9 @@ private:
 	std::jthread _tcpDataThread;
 
 	asio::io_context _ioContext;
-	asio::ip::udp::endpoint _senderEndpointUDP;
-	asio::ip::tcp::endpoint _senderEndpointTCP;
+	asio::ip::udp::endpoint _senderEndpointUDP;  // will be filled by receive_from
+	asio::ip::udp::endpoint _boardEndpointUDP{asio::ip::make_address_v4("192.168.0.2"), 5000};
+	asio::ip::tcp::endpoint _remoteEndpointTCP;
 	asio::ip::udp::socket _socketUDP;
 	asio::ip::tcp::socket _socketTCP;
 	std::array<char, 4 * 1024> _bufferUDP{};

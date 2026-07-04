@@ -5,11 +5,14 @@
 #include <cmath>
 #include <vector>
 
+#include "RuntimeError.hpp"
+
 Ethernet::Ethernet()
-    : _senderEndpointUDP(asio::ip::make_address_v4("192.168.0.17"), 5000),
-	  _senderEndpointTCP(asio::ip::make_address_v4("192.168.0.18"), 5001),
-	  _socketUDP(_ioContext, _senderEndpointUDP),
+	: _remoteEndpointTCP(asio::ip::make_address_v4("192.168.0.2"), 5001),
+	  _socketUDP(_ioContext, asio::ip::udp::endpoint(asio::ip::udp::v4(), 5000)),
 	  _socketTCP(_ioContext) {
+
+	_senderEndpointUDP = asio::ip::udp::endpoint(asio::ip::make_address_v4("192.168.0.2"), 5000);
 
 	_udpDataThread = std::jthread(&Ethernet::_updateUDP, this);
 	_tcpDataThread = std::jthread(&Ethernet::_updateTCP, this);
@@ -99,7 +102,7 @@ void Ethernet::_updateTCP() {
 	while (!_stopFlag) {
 		if (!_socketTCP.is_open()) {
 			try {
-				_socketTCP.connect(_senderEndpointTCP);
+				_socketTCP.connect(_remoteEndpointTCP);
 				std::cout << "TCP connected" << std::endl;
 			} catch (const std::system_error&) {
 				std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -126,7 +129,7 @@ void Ethernet::_updateTCP() {
 			std::size_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
 
 			if (len != sizeof(lengthPrefix)) {
-				//Something fucky wucky.
+				throw RuntimeError("Error in asio read?\n");
 			}
 
 			std::vector<uint8_t> recvArr(lengthPrefix & 0xFFFF);
