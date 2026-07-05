@@ -44,11 +44,40 @@
 #define TCP_DATA_PHASE_RMS_VOLTAGE            1 << 10
 #define TCP_DATA_ERROR_REGISTER               1 << 11
 
-struct dataTCP {
-	std::optional<bool> readWriteFlag;
+struct DataTCP {
+	int32_t motorIx = -1;
 	std::optional<float> busVoltage;
 	std::optional<float> busCurrent;
 	std::optional<uint32_t> ledStatus;
+};
+
+struct CommandTCP {
+	int32_t motorIx = -1;
+	std::optional<float> torqueSetpoint;
+	std::optional<float> torqueKp;
+	std::optional<float> torqueKd;
+	std::optional<float> torqueKi;
+	std::optional<float> torqueLimit;
+
+	std::optional<float> velocitySetpoint;
+	std::optional<float> velocityKp;
+	std::optional<float> velocityKd;
+	std::optional<float> velocityKi;
+	std::optional<float> velocityLimit;
+
+	std::optional<float> positionSetpoint;
+	std::optional<float> positionKp;
+	std::optional<float> positionKd;
+	std::optional<float> positionKi;
+
+	std::optional<uint32_t> drivingMode;
+
+	std::optional<float> currentLimitBus;
+	std::optional<float> currentLimitPhase;
+
+	std::optional<uint32_t> polePairs;
+	std::optional<uint32_t> udpDataConfig;
+	std::optional<uint32_t> confirmErrorCode;
 };
 
 // TCP COMMANDS
