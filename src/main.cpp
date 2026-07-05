@@ -5,178 +5,6 @@
 #include "Protocol.hpp"
 #include "RuntimeError.hpp"
 
-std::pair<std::vector<CommandTCP>, std::vector<DataTCP>> parseTcpPacket(const std::vector<uint8_t> &packet) {
-	if (packet.size() < 4) {
-		throw RuntimeError("Invalid TCP packet. Packet size: " + std::to_string(packet.size()) + "\n");
-	}
-
-	std::pair<std::vector<CommandTCP>, std::vector<DataTCP>> out;
-	uint32_t packetOffset = 0;
-	uint32_t header;
-	uint32_t tmpUint;
-	uint32_t tmpFloat;
-
-	while (packetOffset < packet.size()) {
-		memcpy(&header, packet.data() + packetOffset, 4);
-		packetOffset += 4;
-
-		std::bitset<32> headerBits(header);
-		if (headerBits[0]) {
-			// Command
-			CommandTCP commandTCP;
-			commandTCP.motorIx = out.first.size() + out.second.size();
-			for (int i = 1; i < 32; i++) {
-				if (headerBits[i]) {
-
-					switch (1 << i) {
-						case (TCP_COMMAND_TORQUE_SETPOINT): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueSetpoint = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_TORQUE_KP): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueKp = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_TORQUE_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueKd = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_TORQUE_KI): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueKi = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_TORQUE_LIMIT): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueLimit = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_VELOCITY_SETPOINT): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocitySetpoint = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_VELOCITY_KP): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocityKp = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_VELOCITY_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocityKd = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_VELOCITY_KI): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocityKi = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_VELOCITY_LIMIT): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocityLimit = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_POSITION_SETPOINT): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.positionSetpoint = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_POSITION_KP): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.positionKp = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_POSITION_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.positionKd = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_POSITION_KI): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.positionKi = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_DRIVING_MODE): {
-						    memcpy(&tmpUint, packet.data() + packetOffset, 4);
-						    commandTCP.drivingMode = tmpUint;
-						} break;
-
-						case (TCP_COMMAND_CURRENT_LIMIT_BUS): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.currentLimitBus = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_CURRENT_LIMIT_PHASE): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.currentLimitPhase = tmpFloat;
-						} break;
-
-						case (TCP_COMMAND_POLE_PAIRS): {
-						    memcpy(&tmpUint, packet.data() + packetOffset, 4);
-						    commandTCP.polePairs = tmpUint;
-						} break;
-
-						case (TCP_COMMAND_UDP_DATA_CONFIG): {
-						    memcpy(&tmpUint, packet.data() + packetOffset, 4);
-						    commandTCP.udpDataConfig = tmpUint;
-						} break;
-
-						case (TCP_COMMAND_CLEAR_ERROR_REGISTER): {
-						    memcpy(&tmpUint, packet.data() + packetOffset, 4);
-						    commandTCP.confirmErrorCode = tmpUint;
-						} break;
-
-						default: {
-							// Error?
-						} break;
-					}
-
-					packetOffset += 4;
-				}
-			}
-
-			out.first.emplace_back(commandTCP);
-		} else {
-			// Data
-			DataTCP dataTCP;
-			dataTCP.motorIx = out.first.size() + out.second.size();
-			for (int i = 1; i < 32; i++) {
-				if (headerBits[i]) {
-
-					switch (1 << i) {
-						case (TCP_DATA_BUS_VOLTAGE): {
-							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-							dataTCP.busVoltage = tmpFloat;
-						} break;
-
-						case (TCP_DATA_BUS_CURRENT): {
-							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-							dataTCP.busCurrent = tmpFloat;
-						} break;
-
-						case (TCP_DATA_LED_STATUS): {
-							memcpy(&tmpUint, packet.data() + packetOffset, 4);
-							dataTCP.ledStatus = tmpUint;
-						}
-
-						default: {
-							// Error?
-						} break;
-					}
-
-					packetOffset += 4;
-				}
-			}
-
-			out.second.emplace_back(dataTCP);
-		}
-	}
-
-	return out;
-}
 
 std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& values) {
 	std::vector<uint32_t> headers;
@@ -313,36 +141,22 @@ int main() {
 		// 		{{TCP_COMMAND, TCP_COMMAND_UDP_DATA_CONFIG}, {0b1111}}
 		// });
 
-		eth.setTCPSend(outVec);
+		if (eth.packetsInList.load() == 0) {
+			std::cout << "Adding packet.\n";
+			eth.addTCPPacket(outVec);
+		}
 
-		if (!eth.shouldSendTCP.load()) {
-			eth.shouldSendTCP.store(true);
+		auto tcpData = eth.getTCPPacket();
+		std::cout << "Num TCP data packets: " << tcpData.size() << "\n";
 
-			std::vector<uint8_t> recvBuffer{};
-			eth.getTCPRecv(recvBuffer);
+		for (auto &dataPacket : tcpData) {
+			// Data
 
-			if (recvBuffer.size() >= 4) {
-				auto outTCP = parseTcpPacket(recvBuffer);
-				std::cout << "Num packets: " << outTCP.first.size() + outTCP.second.size() << " | ";
-
-				for (auto &commandPacket : outTCP.first) {
-					// Command
-					// TODO: clear from ethernet buffer.
-				}
-
-				for (auto &dataPacket : outTCP.second) {
-					// Data
-
-					if (dataPacket.ledStatus.has_value()) {
-						std::cout << "ix: " << dataPacket.motorIx << " | LED: " << dataPacket.ledStatus.value() << " | ";
-					}
-				}
-
-				std::cout << "\n";
-
-			} else {
-				std::cout << "No TCP packet.\n";
+			if (dataPacket.ledStatus.has_value()) {
+				std::cout << "ix: " << dataPacket.motorIx << " | LED: " << dataPacket.ledStatus.value() << " | ";
 			}
 		}
+
+		std::cout << "\n";
 	}
 }

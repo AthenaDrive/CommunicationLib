@@ -12,6 +12,7 @@
 
 #include <asio.hpp>
 
+#include "Protocol.hpp"
 #include "CommunicationConfig.hpp"
 
 class Ethernet {
@@ -21,38 +22,45 @@ public:
 
 	std::vector<UDPDataFromPeripheral> getUDPData();
 
-	// Temporary for testing.
-	std::atomic_uint32_t numTCPReads = 0;
-	void setTCPSend(const std::vector<uint8_t> &vec);
-	void getTCPRecv(std::vector<uint8_t> &vec);
-	std::atomic_bool shouldSendTCP{false};
+	std::atomic_int packetsInList = 0;
+	void addTCPPacket(const std::vector<uint8_t> &packet);
+	std::vector<DataTCP> getTCPPacket();
 
 private:
 	std::atomic_bool _stopFlag = false;
 
+	// UDP Stuff
 	void _updateUDP();
 	UDPDataFromPeripheral readSingleUDP(int &offset, int len);
-	void _updateTCP();
 
 	std::vector<UDPDataFromPeripheral> _udpData{};
+	std::array<char, 4 * 1024> _bufferUDP{};
 	std::mutex _udpDataMutex;
 	std::jthread _udpDataThread;
 
-	std::mutex _tcpDataMutex;
+	// TCP Stuff
+	void _updateTCP();
+	void _parseTcpPacket(const std::vector<uint8_t> &packet);
+
+	std::queue<std::vector<uint8_t>> _tcpSendPacketBuffer;
+	std::mutex _tcpSendingPacketMutex;
+
+	std::queue<DataTCP> _tcpReceivingBuffer;
+	std::mutex _tcpReceivingMutex;
+
+	// TODO!
+	std::vector<CommandTCP> _internalCommandBuffer;
+	std::mutex _internalCommandMutex;
+
 	std::jthread _tcpDataThread;
 
+	// Ethernet stuff
 	asio::io_context _ioContext;
 	asio::ip::udp::endpoint _senderEndpointUDP;  // will be filled by receive_from
 	asio::ip::udp::endpoint _boardEndpointUDP{asio::ip::make_address_v4("192.168.0.2"), 5000};
 	asio::ip::tcp::endpoint _remoteEndpointTCP;
 	asio::ip::udp::socket _socketUDP;
 	asio::ip::tcp::socket _socketTCP;
-	std::array<char, 4 * 1024> _bufferUDP{};
-
-	std::mutex _tcpRecvBufferMutex;
-	std::mutex _tcpSendBufferMutex;
-	std::vector<uint8_t> _tcpRecvBuffer;
-	std::vector<uint8_t> _tcpSendBuffer;
 };
 
 
