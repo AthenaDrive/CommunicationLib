@@ -146,22 +146,22 @@ void Ethernet::_updateTCP() {
 				asio::write(_socketTCP, asio::buffer(tcpSend));
 			}
 
-			// TODO: Use non-blocking or something?
-			uint32_t lengthPrefix;
-			std::size_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
+			if (_socketTCP.available() >= 4) {
+				uint32_t lengthPrefix;
+				std::size_t len = asio::read(_socketTCP, asio::buffer(&lengthPrefix, sizeof(lengthPrefix)));
 
-			if (len != sizeof(lengthPrefix)) {
-				throw RuntimeError("Error in asio read?\n");
+				if (len != sizeof(lengthPrefix)) {
+					throw RuntimeError("Error in asio read?\n");
+				}
+
+				std::vector<uint8_t> recvArr(lengthPrefix & 0xFFFF);
+				len = asio::read(_socketTCP, asio::buffer(recvArr));
+				if (len != (lengthPrefix & 0xFFFF)) {
+					throw RuntimeError("Did not read all data? This should be blocking op.\n");
+				}
+
+				_parseTcpPacket(recvArr);
 			}
-
-			// TODO: Use non-blocking or something?
-			std::vector<uint8_t> recvArr(lengthPrefix & 0xFFFF);
-			len = asio::read(_socketTCP, asio::buffer(recvArr));
-			if (len != (lengthPrefix & 0xFFFF)) {
-				throw RuntimeError("Did not read all data? This should be blocking op.\n");
-			}
-
-			_parseTcpPacket(recvArr);
 
 		} catch (const asio::system_error&) {
 			_socketTCP.close();

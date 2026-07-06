@@ -5,7 +5,6 @@
 #include "Protocol.hpp"
 #include "RuntimeError.hpp"
 
-
 std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& values) {
 	std::vector<uint32_t> headers;
 	std::vector<std::vector<uint32_t>> packetVals;
