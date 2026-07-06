@@ -26,6 +26,9 @@ public:
 	void addTCPPacket(const std::vector<uint8_t> &packet);
 	std::vector<DataTCP> getTCPPacket();
 
+	static std::vector<uint8_t> getTcpCommandPacket(const std::vector<std::pair<std::vector<uint32_t>, std::vector<uint32_t>>>& values);
+	static std::vector<uint8_t> getTcpDataPacket(const std::vector<std::vector<uint32_t>>& values);
+
 private:
 	std::atomic_bool _stopFlag = false;
 

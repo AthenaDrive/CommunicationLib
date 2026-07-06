@@ -44,11 +44,22 @@
 #define TCP_DATA_PHASE_RMS_VOLTAGE            1 << 10
 #define TCP_DATA_ERROR_REGISTER               1 << 11
 
+
 struct DataTCP {
 	int32_t motorIx = -1;
+
 	std::optional<float> busVoltage;
 	std::optional<float> busCurrent;
 	std::optional<uint32_t> ledStatus;
+	std::optional<uint32_t> buttonStatus;
+
+	std::optional<float> currentLimitBus;
+	std::optional<float> currentLimitPhase;
+	std::optional<uint32_t> boardState;
+	std::optional<uint32_t> drivingMode;
+	std::optional<uint32_t> polePairs;
+	std::optional<float> phaseRmsVoltage;
+	std::optional<uint32_t> checkErrorCode;
 };
 
 struct CommandTCP {
