@@ -39,7 +39,7 @@ void Ethernet::_updateUDP() {
 	while (!_stopFlag) {
 		int offset = 0;
 		size_t len = _socketUDP.receive_from(asio::buffer(_bufferUDP), _senderEndpointUDP);
-		if (len < 4) {return;}
+		if (len < 4) { return; }
 
 		std::vector<UDPDataFromPeripheral> newPackets;
 		while (len > offset) {
@@ -115,15 +115,23 @@ void Ethernet::_updateTCP() {
 				_socketTCP.set_option(option);
 				std::cout << "TCP connected" << std::endl;
 			} catch (const std::system_error&) {
-				std::this_thread::sleep_for(std::chrono::seconds(1));
+				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 				continue;
 			}
 		}
 
 		while (true) {
-			std::lock_guard lock(_tcpSendingPacketMutex);
-			if (_tcpSendPacketBuffer.empty()) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			bool doWait = false;
+
+			{
+				std::lock_guard lock(_tcpSendingPacketMutex);
+				if (_tcpSendPacketBuffer.empty()) {
+					doWait = true;
+				}
+			}
+
+			if (doWait) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			} else {
 				break;
 			}
