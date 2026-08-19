@@ -29,35 +29,54 @@ Ethernet::~Ethernet() {
 	}
 }
 
-std::vector<UDPDataFromPeripheral> Ethernet::getUDPData() {
+void Ethernet::setUDPData(const std::vector<CommandUDP>& data) {
+	std::lock_guard lock(_udpCommandMutex);
+	_commandUDP = data;
+}
+
+std::vector<DataUDP> Ethernet::getUDPData() {
 	std::lock_guard lock(_udpDataMutex);
-	return _udpData;
+	return _dataUDP;
 }
 
 void Ethernet::_updateUDP() {
 
 	while (!_stopFlag) {
-		int offset = 0;
-		size_t len = _socketUDP.receive_from(asio::buffer(_bufferUDP), _senderEndpointUDP);
-		if (len < 4) { return; }
-
-		std::vector<UDPDataFromPeripheral> newPackets;
-		while (len > offset) {
-			newPackets.emplace_back(readSingleUDP(offset, len));
-		}
-
-		std::lock_guard lock(_udpDataMutex);
-		_udpData = newPackets;
+		recvUDP();
+		sendUDP();
 	}
 }
 
-UDPDataFromPeripheral Ethernet::readSingleUDP(int &offset, int len) {
+void Ethernet::recvUDP() {
+	int offset = 0;
+	size_t len = _socketUDP.receive_from(asio::buffer(_bufferDataUDP), _senderEndpointUDP);
+	if (len < 4) { return; }
+
+	std::vector<DataUDP> newPackets;
+	while (len > offset) {
+		newPackets.emplace_back(readSingleUDP(offset, len));
+	}
+
+	std::lock_guard lock(_udpDataMutex);
+	_dataUDP = newPackets;
+}
+
+void Ethernet::sendUDP() {
+	auto tNow = std::chrono::high_resolution_clock::now();
+	auto time = std::chrono::duration_cast<std::chrono::microseconds>(tNow - _prevCommandUDPTime).count();
+
+	if (time > 1000) {
+		_socketUDP.send_to(asio::buffer(_bufferCommandUDP, _bufferCommandUDPLen), _boardEndpointUDP);
+	}
+}
+
+DataUDP Ethernet::readSingleUDP(int &offset, int len) {
 	if (len <= offset) {
 		throw std::runtime_error("Invalid Packet read.\n");
 	}
 
 	uint32_t header;
-	std::memcpy(&header, _bufferUDP.data() + offset, 4);
+	std::memcpy(&header, _bufferDataUDP.data() + offset, 4);
 	offset += 4;
 
 	int numValues = 0;
@@ -75,11 +94,11 @@ UDPDataFromPeripheral Ethernet::readSingleUDP(int &offset, int len) {
 		throw std::runtime_error("Invalid header.\n");
 	}
 
-	UDPDataFromPeripheral udpData{};
+	DataUDP udpData{};
 	for (int i = 0; i < numValues; i++) {
 		int packetIx = positions[i];
 		auto* base = reinterpret_cast<std::byte*>(&udpData);
-		std::memcpy(base + offsetsUDPFromPeripheral[packetIx], _bufferUDP.data() + offset, 4);
+		std::memcpy(base + offsetsDataUDP[packetIx], _bufferDataUDP.data() + offset, 4);
 		offset += 4;
 	}
 

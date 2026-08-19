@@ -20,6 +20,54 @@
 #define UDP_DATA_LOOP_TIME_FOC                1 << 11
 #define UDP_DATA_LOOP_TIME_SECONDARY          1 << 12
 
+struct DataUDP {
+	int32_t motorIx = -1;
+
+	std::optional<uint32_t> timestamp;
+	std::optional<float> position;
+	std::optional<float> velocity;
+	std::optional<float> acceleration;
+	std::optional<float> torque;
+	std::optional<float> phaseCurrentA;
+	std::optional<float> phaseCurrentB;
+	std::optional<float> phaseCurrentC;
+	std::optional<float> busCurrent;
+	std::optional<float> busVoltage;
+
+	std::optional<uint32_t> errorRegister;
+	std::optional<uint32_t> loopTimeFOC;
+	std::optional<uint32_t> loopTimeSecondary;
+
+	std::optional<float> accX;
+	std::optional<float> accY;
+	std::optional<float> accZ;
+	std::optional<float> gyroX;
+	std::optional<float> gyroY;
+	std::optional<float> gyroZ;
+};
+
+constexpr size_t offsetsDataUDP[] = {
+	offsetof(DataUDP, timestamp),
+	offsetof(DataUDP, position),
+	offsetof(DataUDP, velocity),
+	offsetof(DataUDP, acceleration),
+	offsetof(DataUDP, torque),
+	offsetof(DataUDP, phaseCurrentA),
+	offsetof(DataUDP, phaseCurrentB),
+	offsetof(DataUDP, phaseCurrentC),
+	offsetof(DataUDP, busCurrent),
+	offsetof(DataUDP, busVoltage),
+	offsetof(DataUDP, errorRegister),
+	offsetof(DataUDP, loopTimeFOC),
+	offsetof(DataUDP, loopTimeSecondary),
+	offsetof(DataUDP, accX),
+	offsetof(DataUDP, accY),
+	offsetof(DataUDP, accZ),
+	offsetof(DataUDP, gyroX),
+	offsetof(DataUDP, gyroY),
+	offsetof(DataUDP, gyroZ)
+};
+
 // UDP COMMANDS
 #define UDP_COMMAND_TORQUE_SETPOINT           1 << 0
 #define UDP_COMMAND_VELOCITY_SETPOINT         1 << 1
@@ -29,6 +77,21 @@
 #define UDP_COMMAND_CURRENT_LIMIT_BUS         1 << 5
 #define UDP_COMMAND_CURRENT_LIMIT_PHASE       1 << 6
 #define UDP_COMMAND_DRIVING_MODE              1 << 7
+
+struct CommandUDP {
+	int32_t motorIx = -1;
+
+	std::optional<float> torqueSetpoint;
+	std::optional<float> velocitySetpoint;
+	std::optional<float> positionSetpoint;
+
+	std::optional<uint32_t> drivingMode;
+
+	std::optional<float> maxTorque;
+	std::optional<float> maxVelocity;
+	std::optional<float> currentLimitBus;
+	std::optional<float> currentLimitPhase;
+};
 
 // TCP DATA
 #define TCP_DATA                              0 << 0
@@ -62,6 +125,29 @@ struct DataTCP {
 	std::optional<uint32_t> checkErrorCode;
 };
 
+// TCP COMMANDS
+#define TCP_COMMAND                           1 << 0
+#define TCP_COMMAND_TORQUE_SETPOINT           1 << 1
+#define TCP_COMMAND_TORQUE_KP                 1 << 2
+#define TCP_COMMAND_TORQUE_KD                 1 << 3
+#define TCP_COMMAND_TORQUE_KI                 1 << 4
+#define TCP_COMMAND_TORQUE_LIMIT              1 << 5
+#define TCP_COMMAND_VELOCITY_SETPOINT         1 << 6
+#define TCP_COMMAND_VELOCITY_KP               1 << 7
+#define TCP_COMMAND_VELOCITY_KD               1 << 8
+#define TCP_COMMAND_VELOCITY_KI               1 << 9
+#define TCP_COMMAND_VELOCITY_LIMIT            1 << 10
+#define TCP_COMMAND_POSITION_SETPOINT         1 << 11
+#define TCP_COMMAND_POSITION_KP               1 << 12
+#define TCP_COMMAND_POSITION_KD               1 << 13
+#define TCP_COMMAND_POSITION_KI               1 << 14
+#define TCP_COMMAND_DRIVING_MODE              1 << 15
+#define TCP_COMMAND_CURRENT_LIMIT_BUS         1 << 16
+#define TCP_COMMAND_CURRENT_LIMIT_PHASE       1 << 17
+#define TCP_COMMAND_POLE_PAIRS                1 << 18
+#define TCP_COMMAND_UDP_DATA_CONFIG           1 << 19
+#define TCP_COMMAND_CLEAR_ERROR_REGISTER      1 << 20
+
 struct CommandTCP {
 	int32_t motorIx = -1;
 	std::optional<float> torqueSetpoint;
@@ -90,29 +176,5 @@ struct CommandTCP {
 	std::optional<uint32_t> udpDataConfig;
 	std::optional<uint32_t> confirmErrorCode;
 };
-
-// TCP COMMANDS
-#define TCP_COMMAND                           1 << 0
-#define TCP_COMMAND_TORQUE_SETPOINT           1 << 1
-#define TCP_COMMAND_TORQUE_KP                 1 << 2
-#define TCP_COMMAND_TORQUE_KD                 1 << 3
-#define TCP_COMMAND_TORQUE_KI                 1 << 4
-#define TCP_COMMAND_TORQUE_LIMIT              1 << 5
-#define TCP_COMMAND_VELOCITY_SETPOINT         1 << 6
-#define TCP_COMMAND_VELOCITY_KP               1 << 7
-#define TCP_COMMAND_VELOCITY_KD               1 << 8
-#define TCP_COMMAND_VELOCITY_KI               1 << 9
-#define TCP_COMMAND_VELOCITY_LIMIT            1 << 10
-#define TCP_COMMAND_POSITION_SETPOINT         1 << 11
-#define TCP_COMMAND_POSITION_KP               1 << 12
-#define TCP_COMMAND_POSITION_KD               1 << 13
-#define TCP_COMMAND_POSITION_KI               1 << 14
-#define TCP_COMMAND_DRIVING_MODE              1 << 15
-#define TCP_COMMAND_CURRENT_LIMIT_BUS         1 << 16
-#define TCP_COMMAND_CURRENT_LIMIT_PHASE       1 << 17
-#define TCP_COMMAND_POLE_PAIRS                1 << 18
-#define TCP_COMMAND_UDP_DATA_CONFIG           1 << 19
-#define TCP_COMMAND_CLEAR_ERROR_REGISTER      1 << 20
-
 
 #endif //COMPUTERCONTROLL_PROTOCOL_HPP

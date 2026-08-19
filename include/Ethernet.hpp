@@ -13,14 +13,14 @@
 #include <asio.hpp>
 
 #include "Protocol.hpp"
-#include "CommunicationConfig.hpp"
 
 class Ethernet {
 public:
 	Ethernet();
 	~Ethernet();
 
-	std::vector<UDPDataFromPeripheral> getUDPData();
+	void setUDPData(const std::vector<CommandUDP> &data);
+	std::vector<DataUDP> getUDPData();
 
 	std::atomic_int packetsInList = 0;
 	void addTCPPacket(const std::vector<uint8_t> &packet);
@@ -34,11 +34,23 @@ private:
 
 	// UDP Stuff
 	void _updateUDP();
-	UDPDataFromPeripheral readSingleUDP(int &offset, int len);
+	void recvUDP();
+	void sendUDP();
 
-	std::vector<UDPDataFromPeripheral> _udpData{};
-	std::array<char, 4 * 1024> _bufferUDP{};
+	DataUDP readSingleUDP(int &offset, int len);
+
+	std::vector<DataUDP> _dataUDP;
 	std::mutex _udpDataMutex;
+
+	std::vector<CommandUDP> _commandUDP{};
+	std::mutex _udpCommandMutex;
+
+	uint32_t _bufferCommandUDPLen = 0;
+	std::array<uint8_t, 4 * 1024> _bufferCommandUDP{};
+	std::chrono::high_resolution_clock::time_point _prevCommandUDPTime;
+
+	std::array<uint8_t, 4 * 1024> _bufferDataUDP{};
+
 	std::jthread _udpDataThread;
 
 	// TCP Stuff
