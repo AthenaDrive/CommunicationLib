@@ -3,6 +3,26 @@
 #include "Protocol.hpp"
 #include "RuntimeError.hpp"
 
+void printUDPData(DataUDP &data) {
+	// if (data.motorIx == -1) { return; }
+
+	std::cout << "ix: " << data.motorIx;
+
+	if (data.timestamp.has_value()) {
+		std::cout << ", " << data.timestamp.value();
+	}
+
+	if (data.position.has_value()) {
+		std::cout << ", " << data.position.value();
+	}
+
+	if (data.velocity.has_value()) {
+		std::cout << ", " << data.velocity.value();
+	}
+
+	std::cout << "\n";
+}
+
 int main() {
 
 	Ethernet eth;
@@ -11,9 +31,8 @@ int main() {
 		auto udpDataArr = eth.getUDPData();
 
 		for (int i = 0; i < udpDataArr.size(); i++) {
-			// std::cout << i << ", " << udpDataArr[i].timestamp << ", " << udpDataArr[i].position << ", " << " | ";
+			printUDPData(udpDataArr[i]);
 		}
-		// std::cout << "\n";
 
 		std::vector<uint8_t> outVec{};
 
@@ -22,9 +41,9 @@ int main() {
 			{TCP_DATA_LED_STATUS}
 		});
 
-		/* outVec = Ethernet::getTcpCommandPacket({
-		   {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b111111}}
-		}); */
+		outVec = Ethernet::getTcpCommandPacket({
+		   {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b101}}
+		});
 
 		if (eth.packetsInList.load() == 0) {
 			// std::cout << "Adding packet.\n";
@@ -38,7 +57,7 @@ int main() {
 			// Data
 
 			if (dataPacket.ledStatus.has_value()) {
-				// std::cout << "ix: " << dataPacket.motorIx << " | LED: " << dataPacket.ledStatus.value() << "\n";
+				std::cout << "ix: " << dataPacket.motorIx << " | LED: " << dataPacket.ledStatus.value() << "\n";
 			}
 		}
 
