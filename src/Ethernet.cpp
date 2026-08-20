@@ -52,9 +52,12 @@ void Ethernet::recvUDP() {
 	size_t len = _socketUDP.receive_from(asio::buffer(_bufferDataUDP), _senderEndpointUDP);
 	if (len < 4) { return; }
 
+	int ix = 1;
 	std::vector<DataUDP> newPackets;
 	while (len > offset) {
 		newPackets.emplace_back(readSingleUDP(offset, len));
+		newPackets.back().motorIx = ix;
+		ix++;
 	}
 
 	std::lock_guard lock(_udpDataMutex);
@@ -65,7 +68,7 @@ void Ethernet::sendUDP() {
 	auto tNow = std::chrono::high_resolution_clock::now();
 	auto time = std::chrono::duration_cast<std::chrono::microseconds>(tNow - _prevCommandUDPTime).count();
 
-	if (time > 1000) {
+	if ((time > 10000) and (_bufferCommandUDPLen > 0)) {
 		_socketUDP.send_to(asio::buffer(_bufferCommandUDP, _bufferCommandUDPLen), _boardEndpointUDP);
 	}
 }
@@ -97,8 +100,25 @@ DataUDP Ethernet::readSingleUDP(int &offset, int len) {
 	DataUDP udpData{};
 	for (int i = 0; i < numValues; i++) {
 		int packetIx = positions[i];
-		auto* base = reinterpret_cast<std::byte*>(&udpData);
-		std::memcpy(base + offsetsDataUDP[packetIx], _bufferDataUDP.data() + offset, 4);
+
+		if (packetIx == 0) {
+			uint32_t timestamp;
+			std::memcpy(&timestamp, _bufferDataUDP.data() + offset, 4);
+			udpData.timestamp = timestamp;
+		} else if (packetIx == 1) {
+			float position;
+			std::memcpy(&position, _bufferDataUDP.data() + offset, 4);
+			udpData.position = position;
+		} else if (packetIx == 2) {
+			float velocity;
+			std::memcpy(&velocity, _bufferDataUDP.data() + offset, 4);
+			udpData.velocity = velocity;
+		} else if (packetIx == 3) {
+			float acceleration;
+			std::memcpy(&acceleration, _bufferDataUDP.data() + offset, 4);
+			udpData.acceleration = acceleration;
+		}
+
 		offset += 4;
 	}
 
@@ -116,7 +136,6 @@ std::vector<DataTCP> Ethernet::getTCPPacket() {
 
 	return out;
 }
-
 
 void Ethernet::addTCPPacket(const std::vector<uint8_t>& packet) {
 	std::lock_guard lock(_tcpSendingPacketMutex);
@@ -231,14 +250,14 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						    commandTCP.torqueKp = tmpFloat;
 						} break;
 
-						case (TCP_COMMAND_TORQUE_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.torqueKd = tmpFloat;
-						} break;
-
 						case (TCP_COMMAND_TORQUE_KI): {
 						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 						    commandTCP.torqueKi = tmpFloat;
+						} break;
+
+						case (TCP_COMMAND_TORQUE_KD): {
+						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+						    commandTCP.torqueKd = tmpFloat;
 						} break;
 
 						case (TCP_COMMAND_TORQUE_LIMIT): {
@@ -256,14 +275,14 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						    commandTCP.velocityKp = tmpFloat;
 						} break;
 
-						case (TCP_COMMAND_VELOCITY_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.velocityKd = tmpFloat;
-						} break;
-
 						case (TCP_COMMAND_VELOCITY_KI): {
 						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 						    commandTCP.velocityKi = tmpFloat;
+						} break;
+
+						case (TCP_COMMAND_VELOCITY_KD): {
+						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+						    commandTCP.velocityKd = tmpFloat;
 						} break;
 
 						case (TCP_COMMAND_VELOCITY_LIMIT): {
@@ -281,14 +300,14 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						    commandTCP.positionKp = tmpFloat;
 						} break;
 
-						case (TCP_COMMAND_POSITION_KD): {
-						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
-						    commandTCP.positionKd = tmpFloat;
-						} break;
-
 						case (TCP_COMMAND_POSITION_KI): {
 						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 						    commandTCP.positionKi = tmpFloat;
+						} break;
+
+						case (TCP_COMMAND_POSITION_KD): {
+						    memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+						    commandTCP.positionKd = tmpFloat;
 						} break;
 
 						case (TCP_COMMAND_DRIVING_MODE): {
