@@ -117,6 +117,44 @@ DataUDP Ethernet::readSingleUDP(int &offset, int len) {
 			float acceleration;
 			std::memcpy(&acceleration, _bufferDataUDP.data() + offset, 4);
 			udpData.acceleration = acceleration;
+		} else if (packetIx == 4) {
+			float torque;
+			std::memcpy(&torque, _bufferDataUDP.data() + offset, 4);
+			udpData.torque = torque;
+		} else if (packetIx == 5) {
+			float phaseCurrentA;
+			std::memcpy(&phaseCurrentA, _bufferDataUDP.data() + offset, 4);
+			udpData.phaseCurrentA = phaseCurrentA;
+		} else if (packetIx == 6) {
+			float phaseCurrentB;
+			std::memcpy(&phaseCurrentB, _bufferDataUDP.data() + offset, 4);
+			udpData.phaseCurrentB = phaseCurrentB;
+		} else if (packetIx == 7) {
+			float phaseCurrentC;
+			std::memcpy(&phaseCurrentC, _bufferDataUDP.data() + offset, 4);
+			udpData.phaseCurrentC = phaseCurrentC;
+		} else if (packetIx == 8) {
+			float busCurrent;
+			std::memcpy(&busCurrent, _bufferDataUDP.data() + offset, 4);
+			udpData.busCurrent = busCurrent;
+		} else if (packetIx == 9) {
+			float busVoltage;
+			std::memcpy(&busVoltage, _bufferDataUDP.data() + offset, 4);
+			udpData.busVoltage = busVoltage;
+		} else if (packetIx == 10) {
+			uint32_t errorRegister;
+			std::memcpy(&errorRegister, _bufferDataUDP.data() + offset, 4);
+			udpData.errorRegister = errorRegister;
+		} else if (packetIx == 11) {
+			uint32_t loopTimeFOC;
+			std::memcpy(&loopTimeFOC, _bufferDataUDP.data() + offset, 4);
+			udpData.loopTimeFOC = loopTimeFOC;
+		} else if (packetIx == 12) {
+			uint32_t loopTimeSecondary;
+			std::memcpy(&loopTimeSecondary, _bufferDataUDP.data() + offset, 4);
+			udpData.loopTimeSecondary = loopTimeSecondary;
+		} else {
+			throw RuntimeError("Invalid Packet read.\n");
 		}
 
 		offset += 4;
