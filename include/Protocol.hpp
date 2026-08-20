@@ -46,28 +46,6 @@ struct DataUDP {
 	std::optional<float> gyroZ;
 };
 
-constexpr size_t offsetsDataUDP[] = {
-	offsetof(DataUDP, timestamp),
-	offsetof(DataUDP, position),
-	offsetof(DataUDP, velocity),
-	offsetof(DataUDP, acceleration),
-	offsetof(DataUDP, torque),
-	offsetof(DataUDP, phaseCurrentA),
-	offsetof(DataUDP, phaseCurrentB),
-	offsetof(DataUDP, phaseCurrentC),
-	offsetof(DataUDP, busCurrent),
-	offsetof(DataUDP, busVoltage),
-	offsetof(DataUDP, errorRegister),
-	offsetof(DataUDP, loopTimeFOC),
-	offsetof(DataUDP, loopTimeSecondary),
-	offsetof(DataUDP, accX),
-	offsetof(DataUDP, accY),
-	offsetof(DataUDP, accZ),
-	offsetof(DataUDP, gyroX),
-	offsetof(DataUDP, gyroY),
-	offsetof(DataUDP, gyroZ)
-};
-
 // UDP COMMANDS
 #define UDP_COMMAND_TORQUE_SETPOINT           1 << 0
 #define UDP_COMMAND_VELOCITY_SETPOINT         1 << 1

@@ -42,9 +42,7 @@ private:
 	std::vector<DataUDP> _dataUDP;
 	std::mutex _udpDataMutex;
 
-	std::vector<CommandUDP> _commandUDP{};
-	std::mutex _udpCommandMutex;
-
+	std::mutex _bufferCommandUDPMutex;
 	uint32_t _bufferCommandUDPLen = 0;
 	std::array<uint8_t, 4 * 1024> _bufferCommandUDP{};
 	std::chrono::high_resolution_clock::time_point _prevCommandUDPTime;
@@ -55,17 +53,16 @@ private:
 
 	// TCP Stuff
 	void _updateTCP();
+	bool _connectionOpen();
 	void _parseTcpPacket(const std::vector<uint8_t> &packet);
+
+	std::mutex _dataTCPMutex;
 
 	std::queue<std::vector<uint8_t>> _tcpSendPacketBuffer;
 	std::mutex _tcpSendingPacketMutex;
 
 	std::queue<DataTCP> _tcpReceivingBuffer;
 	std::mutex _tcpReceivingMutex;
-
-	// TODO!
-	std::vector<CommandTCP> _internalCommandBuffer;
-	std::mutex _internalCommandMutex;
 
 	std::jthread _tcpDataThread;
 

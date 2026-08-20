@@ -30,8 +30,79 @@ Ethernet::~Ethernet() {
 }
 
 void Ethernet::setUDPData(const std::vector<CommandUDP>& data) {
-	std::lock_guard lock(_udpCommandMutex);
-	_commandUDP = data;
+	std::vector<CommandUDP> actualData;
+
+	// Sorting data. Discarding duplicates.
+	for (auto &d : data) {
+		if (d.motorIx == -1) { continue; }
+
+		while (actualData.size() < d.motorIx) {
+			actualData.push_back({});
+		}
+
+		actualData[d.motorIx] = d;
+	}
+
+	std::lock_guard lock(_bufferCommandUDPMutex);
+
+	uint32_t outerOffset = 0;
+	for (auto &d : data) {
+		uint32_t offset = 4 + outerOffset; // Save space for header
+
+		uint32_t header = 0;
+		if (d.torqueSetpoint.has_value()) {
+			header |= UDP_COMMAND_TORQUE_SETPOINT;
+			memcpy(_bufferCommandUDP.data() + offset, &d.torqueSetpoint.value(), 4);
+			offset += 4;
+		}
+
+		if (d.velocitySetpoint.has_value()) {
+			header |= UDP_COMMAND_VELOCITY_SETPOINT;
+			memcpy(_bufferCommandUDP.data() + offset, &d.velocitySetpoint.value(), 4);
+			offset += 4;
+		}
+
+		if (d.positionSetpoint.has_value()) {
+			header |= UDP_COMMAND_POSITION_SETPOINT;
+			memcpy(_bufferCommandUDP.data() + offset, &d.positionSetpoint.value(), 4);
+			offset += 4;
+		}
+
+		if (d.drivingMode.has_value()) {
+			header |= UDP_COMMAND_DRIVING_MODE;
+			memcpy(_bufferCommandUDP.data() + offset, &d.drivingMode.value(), 4);
+			offset += 4;
+		}
+
+		if (d.maxTorque.has_value()) {
+			header |= UDP_COMMAND_MAX_TORQUE;
+			memcpy(_bufferCommandUDP.data() + offset, &d.maxTorque.value(), 4);
+			offset += 4;
+		}
+
+		if (d.maxVelocity.has_value()) {
+			header |= UDP_COMMAND_MAX_VELOCITY;
+			memcpy(_bufferCommandUDP.data() + offset, &d.maxVelocity.value(), 4);
+			offset += 4;
+		}
+
+		if (d.currentLimitBus.has_value()) {
+			header |= UDP_COMMAND_CURRENT_LIMIT_BUS;
+			memcpy(_bufferCommandUDP.data() + offset, &d.currentLimitBus.value(), 4);
+			offset += 4;
+		}
+
+		if (d.currentLimitPhase.has_value()) {
+			header |= UDP_COMMAND_CURRENT_LIMIT_PHASE;
+			memcpy(_bufferCommandUDP.data() + offset, &d.currentLimitPhase.value(), 4);
+			offset += 4;
+		}
+
+		memcpy(_bufferCommandUDP.data() + outerOffset, &header, 4);
+		outerOffset += offset;
+	}
+
+	_bufferCommandUDPLen = outerOffset;
 }
 
 std::vector<DataUDP> Ethernet::getUDPData() {
@@ -68,8 +139,11 @@ void Ethernet::sendUDP() {
 	auto tNow = std::chrono::high_resolution_clock::now();
 	auto time = std::chrono::duration_cast<std::chrono::microseconds>(tNow - _prevCommandUDPTime).count();
 
+	std::lock_guard lock(_bufferCommandUDPMutex);
+
 	if ((time > 10000) and (_bufferCommandUDPLen > 0)) {
 		_socketUDP.send_to(asio::buffer(_bufferCommandUDP, _bufferCommandUDPLen), _boardEndpointUDP);
+		_prevCommandUDPTime = tNow;
 	}
 }
 
@@ -184,33 +258,8 @@ void Ethernet::addTCPPacket(const std::vector<uint8_t>& packet) {
 void Ethernet::_updateTCP() {
 
 	while (!_stopFlag) {
-		if (!_socketTCP.is_open()) {
-			try {
-				_socketTCP.connect(_remoteEndpointTCP);
-				asio::ip::tcp::no_delay option(true);
-				_socketTCP.set_option(option);
-				std::cout << "TCP connected" << std::endl;
-			} catch (const std::system_error&) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(200));
-				continue;
-			}
-		}
-
-		while (true) {
-			bool doWait = false;
-
-			{
-				std::lock_guard lock(_tcpSendingPacketMutex);
-				if (_tcpSendPacketBuffer.empty()) {
-					doWait = true;
-				}
-			}
-
-			if (doWait) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			} else {
-				break;
-			}
+		if (!_connectionOpen()) {
+			continue;
 		}
 
 		bool haveCommand = false;
@@ -219,6 +268,7 @@ void Ethernet::_updateTCP() {
 			std::lock_guard lock(_tcpSendingPacketMutex);
 			if (!_tcpSendPacketBuffer.empty()) {
 				haveCommand = true;
+
 				tcpSend = _tcpSendPacketBuffer.front();
 				_tcpSendPacketBuffer.pop();
 				packetsInList.fetch_sub(1);
@@ -252,6 +302,22 @@ void Ethernet::_updateTCP() {
 		}
 	}
 }
+
+bool Ethernet::_connectionOpen() {
+	if (!_socketTCP.is_open()) {
+		try {
+			_socketTCP.connect(_remoteEndpointTCP);
+			asio::ip::tcp::no_delay option(true);
+			_socketTCP.set_option(option);
+		} catch (const std::system_error&) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+			return false;
+		}
+	}
+
+	return true;
+}
+
 
 void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 	if (packet.size() < 4) {

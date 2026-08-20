@@ -37,21 +37,18 @@ int main() {
 		std::vector<uint8_t> outVec{};
 
 		outVec = Ethernet::getTcpDataPacket({
-			{TCP_DATA_LED_STATUS},
 			{TCP_DATA_LED_STATUS}
 		});
 
-		outVec = Ethernet::getTcpCommandPacket({
-		   {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b101}}
-		});
+		// outVec = Ethernet::getTcpCommandPacket({
+		//    {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b101}}
+		// });
 
 		if (eth.packetsInList.load() == 0) {
-			// std::cout << "Adding packet.\n";
 			eth.addTCPPacket(outVec);
 		}
 
 		auto tcpData = eth.getTCPPacket();
-		// std::cout << "Num TCP data packets: " << tcpData.size() << "\n";
 
 		for (auto &dataPacket : tcpData) {
 			// Data
