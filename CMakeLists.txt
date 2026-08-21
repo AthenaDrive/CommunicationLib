@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 4.0)
-project(ComputerControll)
+project(ComputerControl)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
@@ -13,16 +14,25 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
-add_executable(ComputerControll
-        src/main.cpp src/Ethernet.cpp)
+add_library(EthernetCommunication
+    src/Ethernet.cpp
+)
 
-target_include_directories(ComputerControll PRIVATE
+target_include_directories(EthernetCommunication PUBLIC
         ${asio_SOURCE_DIR}/include
-        include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 if(WIN32)
-    target_link_libraries(ComputerControll PRIVATE ws2_32 atomic)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
+    target_link_libraries(EthernetCommunication PRIVATE ws2_32)
 endif()
+target_compile_features(EthernetCommunication PRIVATE cxx_std_20)
 
-target_compile_features(ComputerControll PRIVATE cxx_std_20)
+add_executable(ComputerControl src/main.cpp)
+target_link_libraries(ComputerControl PRIVATE EthernetCommunication)
+
+option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
+if(BUILD_PYTHON_BINDINGS)
+    add_subdirectory(bindings)
+endif()
