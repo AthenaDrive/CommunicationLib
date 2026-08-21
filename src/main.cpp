@@ -40,9 +40,10 @@ int main() {
 			{TCP_DATA_LED_STATUS}
 		});
 
-		// outVec = Ethernet::getTcpCommandPacket({
-		//    {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b101}}
-		// });
+
+		outVec = Ethernet::getTcpCommandPacket({
+		   {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b111}}
+		});
 
 		if (eth.packetsInList.load() == 0) {
 			eth.addTCPPacket(outVec);
@@ -59,5 +60,6 @@ int main() {
 		}
 
 		// std::cout << "\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }
