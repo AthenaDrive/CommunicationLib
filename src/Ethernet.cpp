@@ -249,10 +249,15 @@ std::vector<DataTCP> Ethernet::getTCPPacket() {
 	return out;
 }
 
+uint32_t Ethernet::packetsInQueueTCP() const {
+	return _packetsInList.load();
+}
+
+
 void Ethernet::addTCPPacket(const std::vector<uint8_t>& packet) {
 	std::lock_guard lock(_tcpSendingPacketMutex);
 	_tcpSendPacketBuffer.push(packet);
-	packetsInList.fetch_add(1);
+	_packetsInList.fetch_add(1);
 }
 
 void Ethernet::_updateTCP() {
@@ -271,7 +276,7 @@ void Ethernet::_updateTCP() {
 
 				tcpSend = _tcpSendPacketBuffer.front();
 				_tcpSendPacketBuffer.pop();
-				packetsInList.fetch_sub(1);
+				_packetsInList.fetch_sub(1);
 			}
 		}
 

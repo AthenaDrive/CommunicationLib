@@ -22,7 +22,7 @@ public:
 	void setUDPData(const std::vector<CommandUDP> &data);
 	std::vector<DataUDP> getUDPData();
 
-	std::atomic_int packetsInList = 0;
+	uint32_t packetsInQueueTCP() const;
 	void addTCPPacket(const std::vector<uint8_t> &packet);
 	std::vector<DataTCP> getTCPPacket();
 
@@ -58,6 +58,7 @@ private:
 
 	std::mutex _dataTCPMutex;
 
+	std::atomic_int _packetsInList = 0;
 	std::queue<std::vector<uint8_t>> _tcpSendPacketBuffer;
 	std::mutex _tcpSendingPacketMutex;
 

@@ -45,7 +45,7 @@ int main() {
 		   {{TCP_COMMAND_UDP_DATA_CONFIG}, {0b111}}
 		});
 
-		if (eth.packetsInList.load() == 0) {
+		if (eth.packetsInQueueTCP() == 0) {
 			eth.addTCPPacket(outVec);
 		}
 
