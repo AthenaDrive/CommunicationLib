@@ -29,7 +29,7 @@ Ethernet::~Ethernet() {
 	}
 }
 
-void Ethernet::setUDPData(const std::vector<CommandUDP>& data) {
+void Ethernet::setUDPCommand(const std::vector<CommandUDP>& data) {
 	std::vector<CommandUDP> actualData;
 
 	// Sorting data. Discarding duplicates.
@@ -46,7 +46,8 @@ void Ethernet::setUDPData(const std::vector<CommandUDP>& data) {
 	std::lock_guard lock(_bufferCommandUDPMutex);
 
 	uint32_t outerOffset = 0;
-	for (auto &d : data) {
+	for (auto &d : actualData) {
+		if (d.motorIx == -1) { continue; }
 		uint32_t offset = 4 + outerOffset; // Save space for header
 
 		uint32_t header = 0;
@@ -98,8 +99,57 @@ void Ethernet::setUDPData(const std::vector<CommandUDP>& data) {
 			offset += 4;
 		}
 
+		if (d.debugFloat0.has_value()) {
+			header |= DEBUG_FLOAT_0;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugFloat0.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugFloat1.has_value()) {
+			header |= DEBUG_FLOAT_1;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugFloat1.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugFloat2.has_value()) {
+			header |= DEBUG_FLOAT_2;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugFloat2.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugFloat3.has_value()) {
+			header |= DEBUG_FLOAT_3;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugFloat3.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugInt0.has_value()) {
+			header |= DEBUG_INT_0;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugInt0.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugInt1.has_value()) {
+			header |= DEBUG_INT_1;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugInt1.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugUint0.has_value()) {
+			header |= DEBUG_UINT_0;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugUint0.value(), 4);
+			offset += 4;
+		}
+
+		if (d.debugUint1.has_value()) {
+			header |= DEBUG_UINT_1;
+			memcpy(_bufferCommandUDP.data() + offset, &d.debugUint1.value(), 4);
+			offset += 4;
+		}
+
+
 		memcpy(_bufferCommandUDP.data() + outerOffset, &header, 4);
-		outerOffset += offset;
+		outerOffset = offset;
 	}
 
 	_bufferCommandUDPLen = outerOffset;
@@ -227,7 +277,64 @@ DataUDP Ethernet::readSingleUDP(int &offset, int len) {
 			uint32_t loopTimeSecondary;
 			std::memcpy(&loopTimeSecondary, _bufferDataUDP.data() + offset, 4);
 			udpData.loopTimeSecondary = loopTimeSecondary;
+		} else if (packetIx == 13) {
+			float accX;
+			std::memcpy(&accX, _bufferDataUDP.data() + offset, 4);
+			udpData.accX = accX;
+		} else if (packetIx == 14) {
+			float accY;
+			std::memcpy(&accY, _bufferDataUDP.data() + offset, 4);
+			udpData.accY = accY;
+		} else if (packetIx == 15) {
+			float accZ;
+			std::memcpy(&accZ, _bufferDataUDP.data() + offset, 4);
+			udpData.accZ = accZ;
+		} else if (packetIx == 16) {
+			float gyroX;
+			std::memcpy(&gyroX, _bufferDataUDP.data() + offset, 4);
+			udpData.gyroX = gyroX;
+		} else if (packetIx == 17) {
+			float gyroY;
+			std::memcpy(&gyroY, _bufferDataUDP.data() + offset, 4);
+			udpData.gyroY = gyroY;
+		} else if (packetIx == 18) {
+			float gyroZ;
+			std::memcpy(&gyroZ, _bufferDataUDP.data() + offset, 4);
+			udpData.gyroZ = gyroZ;
+		} else if (packetIx == 24) {
+			float debug0;
+			std::memcpy(&debug0, _bufferDataUDP.data() + offset, 4);
+			udpData.debugFloat0 = debug0;
+		} else if (packetIx == 25) {
+			float debug1;
+			std::memcpy(&debug1, _bufferDataUDP.data() + offset, 4);
+			udpData.debugFloat1 = debug1;
+		} else if (packetIx == 26) {
+			float debug2;
+			std::memcpy(&debug2, _bufferDataUDP.data() + offset, 4);
+			udpData.debugFloat2 = debug2;
+		} else if (packetIx == 27) {
+			float debug3;
+			std::memcpy(&debug3, _bufferDataUDP.data() + offset, 4);
+			udpData.debugFloat3 = debug3;
+		} else if (packetIx == 28) {
+			int32_t debug0;
+			std::memcpy(&debug0, _bufferDataUDP.data() + offset, 4);
+			udpData.debugInt0 = debug0;
+		} else if (packetIx == 29) {
+			int32_t debug1;
+			std::memcpy(&debug1, _bufferDataUDP.data() + offset, 4);
+			udpData.debugInt1 = debug1;
+		} else if (packetIx == 30) {
+			uint32_t debug0;
+			std::memcpy(&debug0, _bufferDataUDP.data() + offset, 4);
+			udpData.debugUint0 = debug0;
+		} else if (packetIx == 31) {
+			uint32_t debug1;
+			std::memcpy(&debug1, _bufferDataUDP.data() + offset, 4);
+			udpData.debugUint1 = debug1;
 		} else {
+			std::cout << "packetIx: " << packetIx << "\n";
 			throw RuntimeError("Invalid Packet read.\n");
 		}
 
@@ -323,7 +430,6 @@ bool Ethernet::_connectionOpen() {
 	return true;
 }
 
-
 void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 	if (packet.size() < 4) {
 		throw RuntimeError("Invalid TCP packet. Packet size: " + std::to_string(packet.size()) + "\n");
@@ -332,7 +438,8 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 	uint32_t packetOffset = 0;
 	uint32_t header;
 	uint32_t tmpUint;
-	uint32_t tmpFloat;
+	int32_t tmpInt;
+	float tmpFloat;
 	uint32_t motorIx = 0;
 
 	while (packetOffset < packet.size()) {
@@ -449,6 +556,46 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						    commandTCP.confirmErrorCode = tmpUint;
 						} break;
 
+						case (DEBUG_FLOAT_0): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							commandTCP.debugFloat0 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_1): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							commandTCP.debugFloat1 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_2): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							commandTCP.debugFloat2 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_3): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							commandTCP.debugFloat3 = tmpFloat;
+						} break;
+
+						case (DEBUG_INT_0): {
+							memcpy(&tmpInt, packet.data() + packetOffset, 4);
+							commandTCP.debugInt0 = tmpInt;
+						} break;
+
+						case (DEBUG_INT_1): {
+							memcpy(&tmpInt, packet.data() + packetOffset, 4);
+							commandTCP.debugInt1 = tmpInt;
+						} break;
+
+						case (DEBUG_UINT_0): {
+							memcpy(&tmpUint, packet.data() + packetOffset, 4);
+							commandTCP.debugUint0 = tmpUint;
+						} break;
+
+						case (DEBUG_UINT_1): {
+							memcpy(&tmpUint, packet.data() + packetOffset, 4);
+							commandTCP.debugUint1 = tmpUint;
+						} break;
+
 						default: {
 							// Error?
 						} break;
@@ -458,7 +605,6 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 				}
 			}
 
-			// TODO: delete command from internal buffer.
 		} else {
 			// Data
 			DataTCP dataTCP;
@@ -521,6 +667,46 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						case (TCP_DATA_ERROR_REGISTER): {
 							memcpy(&tmpUint, packet.data() + packetOffset, 4);
 							dataTCP.checkErrorCode = tmpUint;
+						} break;
+
+						case (DEBUG_FLOAT_0): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							dataTCP.debugFloat0 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_1): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							dataTCP.debugFloat1 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_2): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							dataTCP.debugFloat2 = tmpFloat;
+						} break;
+
+						case (DEBUG_FLOAT_3): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							dataTCP.debugFloat3 = tmpFloat;
+						} break;
+
+						case (DEBUG_INT_0): {
+							memcpy(&tmpInt, packet.data() + packetOffset, 4);
+							dataTCP.debugInt0 = tmpInt;
+						} break;
+
+						case (DEBUG_INT_1): {
+							memcpy(&tmpInt, packet.data() + packetOffset, 4);
+							dataTCP.debugInt1 = tmpInt;
+						} break;
+
+						case (DEBUG_UINT_0): {
+							memcpy(&tmpUint, packet.data() + packetOffset, 4);
+							dataTCP.debugUint0 = tmpUint;
+						} break;
+
+						case (DEBUG_UINT_1): {
+							memcpy(&tmpUint, packet.data() + packetOffset, 4);
+							dataTCP.debugUint1 = tmpUint;
 						} break;
 
 						default: {

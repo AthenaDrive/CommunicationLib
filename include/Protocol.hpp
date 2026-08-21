@@ -5,6 +5,15 @@
 #define PREFIX_IDENTIFIER 0b1111100001111001u << 16
 #define PREFIX(len) (PREFIX_IDENTIFIER | len)
 
+#define DEBUG_FLOAT_0                         1 << 24
+#define DEBUG_FLOAT_1                         1 << 25
+#define DEBUG_FLOAT_2                         1 << 26
+#define DEBUG_FLOAT_3                         1 << 27
+#define DEBUG_INT_0                           1 << 28
+#define DEBUG_INT_1                           1 << 29
+#define DEBUG_UINT_0                          1 << 30
+#define DEBUG_UINT_1                          1 << 31
+
 // UDP DATA
 #define UDP_DATA_TIMESTAMP                    1 << 0
 #define UDP_DATA_POSITION                     1 << 1
@@ -19,6 +28,12 @@
 #define UDP_DATA_ERROR_REGISTER               1 << 10
 #define UDP_DATA_LOOP_TIME_FOC                1 << 11
 #define UDP_DATA_LOOP_TIME_SECONDARY          1 << 12
+#define UDP_DATA_ACCELERATION_X               1 << 13
+#define UDP_DATA_ACCELERATION_Y               1 << 14
+#define UDP_DATA_ACCELERATION_Z               1 << 15
+#define UDP_DATA_GYRO_X                       1 << 16
+#define UDP_DATA_GYRO_Y                       1 << 17
+#define UDP_DATA_GYRO_Z                       1 << 18
 
 struct DataUDP {
 	int32_t motorIx = -1;
@@ -44,6 +59,15 @@ struct DataUDP {
 	std::optional<float> gyroX;
 	std::optional<float> gyroY;
 	std::optional<float> gyroZ;
+
+	std::optional<float> debugFloat0;
+	std::optional<float> debugFloat1;
+	std::optional<float> debugFloat2;
+	std::optional<float> debugFloat3;
+	std::optional<int32_t> debugInt0;
+	std::optional<int32_t> debugInt1;
+	std::optional<uint32_t> debugUint0;
+	std::optional<uint32_t> debugUint1;
 };
 
 // UDP COMMANDS
@@ -69,6 +93,15 @@ struct CommandUDP {
 	std::optional<float> maxVelocity;
 	std::optional<float> currentLimitBus;
 	std::optional<float> currentLimitPhase;
+
+	std::optional<float> debugFloat0;
+	std::optional<float> debugFloat1;
+	std::optional<float> debugFloat2;
+	std::optional<float> debugFloat3;
+	std::optional<int32_t> debugInt0;
+	std::optional<int32_t> debugInt1;
+	std::optional<uint32_t> debugUint0;
+	std::optional<uint32_t> debugUint1;
 };
 
 // TCP DATA
@@ -101,6 +134,15 @@ struct DataTCP {
 	std::optional<uint32_t> polePairs;
 	std::optional<float> phaseRmsVoltage;
 	std::optional<uint32_t> checkErrorCode;
+
+	std::optional<float> debugFloat0;
+	std::optional<float> debugFloat1;
+	std::optional<float> debugFloat2;
+	std::optional<float> debugFloat3;
+	std::optional<int32_t> debugInt0;
+	std::optional<int32_t> debugInt1;
+	std::optional<uint32_t> debugUint0;
+	std::optional<uint32_t> debugUint1;
 };
 
 // TCP COMMANDS
@@ -153,6 +195,15 @@ struct CommandTCP {
 	std::optional<uint32_t> polePairs;
 	std::optional<uint32_t> udpDataConfig;
 	std::optional<uint32_t> confirmErrorCode;
+
+	std::optional<float> debugFloat0;
+	std::optional<float> debugFloat1;
+	std::optional<float> debugFloat2;
+	std::optional<float> debugFloat3;
+	std::optional<int32_t> debugInt0;
+	std::optional<int32_t> debugInt1;
+	std::optional<uint32_t> debugUint0;
+	std::optional<uint32_t> debugUint1;
 };
 
 #endif //COMPUTERCONTROLL_PROTOCOL_HPP

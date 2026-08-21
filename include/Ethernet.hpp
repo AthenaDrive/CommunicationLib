@@ -19,7 +19,7 @@ public:
 	Ethernet();
 	~Ethernet();
 
-	void setUDPData(const std::vector<CommandUDP> &data);
+	void setUDPCommand(const std::vector<CommandUDP> &data);
 	std::vector<DataUDP> getUDPData();
 
 	uint32_t packetsInQueueTCP() const;

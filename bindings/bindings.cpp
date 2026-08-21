@@ -12,6 +12,16 @@ PYBIND11_MODULE(EthernetPython, m) {
 
 	m.attr("PREFIX_IDENTIFIER") = PREFIX_IDENTIFIER;
 
+	// DEBUG
+	m.attr("DEBUG_FLOAT_0") = DEBUG_FLOAT_0;
+	m.attr("DEBUG_FLOAT_1") = DEBUG_FLOAT_1;
+	m.attr("DEBUG_FLOAT_2") = DEBUG_FLOAT_2;
+	m.attr("DEBUG_FLOAT_3") = DEBUG_FLOAT_3;
+	m.attr("DEBUG_INT_0") = DEBUG_INT_0;
+	m.attr("DEBUG_INT_1") = DEBUG_INT_1;
+	m.attr("DEBUG_UINT_0") = DEBUG_UINT_0;
+	m.attr("DEBUG_UINT_1") = DEBUG_UINT_1;
+
 	// UDP DATA
 	m.attr("UDP_DATA_TIMESTAMP") = UDP_DATA_TIMESTAMP;
 	m.attr("UDP_DATA_POSITION") = UDP_DATA_POSITION;
@@ -26,6 +36,12 @@ PYBIND11_MODULE(EthernetPython, m) {
 	m.attr("UDP_DATA_ERROR_REGISTER") = UDP_DATA_ERROR_REGISTER;
 	m.attr("UDP_DATA_LOOP_TIME_FOC") = UDP_DATA_LOOP_TIME_FOC;
 	m.attr("UDP_DATA_LOOP_TIME_SECONDARY") = UDP_DATA_LOOP_TIME_SECONDARY;
+	m.attr("UDP_DATA_ACCELERATION_X") = UDP_DATA_ACCELERATION_X;
+	m.attr("UDP_DATA_ACCELERATION_Y") = UDP_DATA_ACCELERATION_Y;
+	m.attr("UDP_DATA_ACCELERATION_Z") = UDP_DATA_ACCELERATION_Z;
+	m.attr("UDP_DATA_GYRO_X") = UDP_DATA_GYRO_X;
+	m.attr("UDP_DATA_GYRO_Y") = UDP_DATA_GYRO_Y;
+	m.attr("UDP_DATA_GYRO_Z") = UDP_DATA_GYRO_Z;
 
 	// UDP COMMANDS
 	m.attr("UDP_COMMAND_TORQUE_SETPOINT") = UDP_COMMAND_TORQUE_SETPOINT;
@@ -96,6 +112,14 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("gyroX", &DataUDP::gyroX)
 		.def_readwrite("gyroY", &DataUDP::gyroY)
 		.def_readwrite("gyroZ", &DataUDP::gyroZ)
+		.def_readwrite("debugFloat0", &DataUDP::debugFloat0)
+		.def_readwrite("debugFloat1", &DataUDP::debugFloat1)
+		.def_readwrite("debugFloat2", &DataUDP::debugFloat2)
+		.def_readwrite("debugFloat3", &DataUDP::debugFloat3)
+		.def_readwrite("debugInt0", &DataUDP::debugInt0)
+		.def_readwrite("debugInt1", &DataUDP::debugInt1)
+		.def_readwrite("debugUint0", &DataUDP::debugUint0)
+		.def_readwrite("debugUint1", &DataUDP::debugUint1)
 	;
 
 	py::class_<CommandUDP>(m, "CommandUDP")
@@ -109,6 +133,14 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("maxVelocity", &CommandUDP::maxVelocity)
 		.def_readwrite("currentLimitBus", &CommandUDP::currentLimitBus)
 		.def_readwrite("currentLimitPhase", &CommandUDP::currentLimitPhase)
+		.def_readwrite("debugFloat0", &CommandUDP::debugFloat0)
+		.def_readwrite("debugFloat1", &CommandUDP::debugFloat1)
+		.def_readwrite("debugFloat2", &CommandUDP::debugFloat2)
+		.def_readwrite("debugFloat3", &CommandUDP::debugFloat3)
+		.def_readwrite("debugInt0", &CommandUDP::debugInt0)
+		.def_readwrite("debugInt1", &CommandUDP::debugInt1)
+		.def_readwrite("debugUint0", &CommandUDP::debugUint0)
+		.def_readwrite("debugUint1", &CommandUDP::debugUint1)
 	;
 
 	py::class_<DataTCP>(m, "DataTCP")
@@ -125,6 +157,14 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("polePairs", &DataTCP::polePairs)
 		.def_readwrite("phaseRmsVoltage", &DataTCP::phaseRmsVoltage)
 		.def_readwrite("checkErrorCode", &DataTCP::checkErrorCode)
+		.def_readwrite("debugFloat0", &DataTCP::debugFloat0)
+		.def_readwrite("debugFloat1", &DataTCP::debugFloat1)
+		.def_readwrite("debugFloat2", &DataTCP::debugFloat2)
+		.def_readwrite("debugFloat3", &DataTCP::debugFloat3)
+		.def_readwrite("debugInt0", &DataTCP::debugInt0)
+		.def_readwrite("debugInt1", &DataTCP::debugInt1)
+		.def_readwrite("debugUint0", &DataTCP::debugUint0)
+		.def_readwrite("debugUint1", &DataTCP::debugUint1)
 	;
 
 	py::class_<CommandTCP>(m, "CommandTCP")
@@ -150,6 +190,14 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("polePairs", &CommandTCP::polePairs)
 		.def_readwrite("udpDataConfig", &CommandTCP::udpDataConfig)
 		.def_readwrite("confirmErrorCode", &CommandTCP::confirmErrorCode)
+		.def_readwrite("debugFloat0", &CommandTCP::debugFloat0)
+		.def_readwrite("debugFloat1", &CommandTCP::debugFloat1)
+		.def_readwrite("debugFloat2", &CommandTCP::debugFloat2)
+		.def_readwrite("debugFloat3", &CommandTCP::debugFloat3)
+		.def_readwrite("debugInt0", &CommandTCP::debugInt0)
+		.def_readwrite("debugInt1", &CommandTCP::debugInt1)
+		.def_readwrite("debugUint0", &CommandTCP::debugUint0)
+		.def_readwrite("debugUint1", &CommandTCP::debugUint1)
 	;
 
 	py::class_<Ethernet>(m, "Ethernet")
