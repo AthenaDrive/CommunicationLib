@@ -36,7 +36,7 @@ void Ethernet::setUDPCommand(const std::vector<CommandUDP>& data) {
 	for (auto &d : data) {
 		if (d.motorIx == -1) { continue; }
 
-		while (actualData.size() < d.motorIx) {
+		while (actualData.size() < d.motorIx + 1) {
 			actualData.push_back({});
 		}
 
