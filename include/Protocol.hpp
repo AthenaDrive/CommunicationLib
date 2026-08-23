@@ -117,7 +117,7 @@ struct CommandUDP {
 #define TCP_DATA_POLE_PAIRS                   1 << 9
 #define TCP_DATA_PHASE_RMS_VOLTAGE            1 << 10
 #define TCP_DATA_ERROR_REGISTER               1 << 11
-
+#define TCP_DATA_TEMPERATURE                  1 << 12
 
 struct DataTCP {
 	int32_t motorIx = -1;
@@ -134,6 +134,7 @@ struct DataTCP {
 	std::optional<uint32_t> polePairs;
 	std::optional<float> phaseRmsVoltage;
 	std::optional<uint32_t> checkErrorCode;
+	std::optional<float> temperature;
 
 	std::optional<float> debugFloat0;
 	std::optional<float> debugFloat1;

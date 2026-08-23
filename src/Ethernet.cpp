@@ -669,6 +669,11 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 							dataTCP.checkErrorCode = tmpUint;
 						} break;
 
+						case (TCP_DATA_TEMPERATURE): {
+							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
+							dataTCP.temperature = tmpFloat;
+						} break;
+
 						case (DEBUG_FLOAT_0): {
 							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 							dataTCP.debugFloat0 = tmpFloat;
