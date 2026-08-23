@@ -360,7 +360,6 @@ uint32_t Ethernet::packetsInQueueTCP() const {
 	return _packetsInList.load();
 }
 
-
 void Ethernet::addTCPPacket(const std::vector<uint8_t>& packet) {
 	std::lock_guard lock(_tcpSendingPacketMutex);
 	_tcpSendPacketBuffer.push(packet);
@@ -556,6 +555,11 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						    commandTCP.confirmErrorCode = tmpUint;
 						} break;
 
+						case (TCP_COMMAND_LED_STATUS): {
+							memcpy(&tmpUint, packet.data() + packetOffset, 4);
+							commandTCP.ledStatus = tmpUint;
+						} break;
+
 						case (DEBUG_FLOAT_0): {
 							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 							commandTCP.debugFloat0 = tmpFloat;
@@ -622,11 +626,6 @@ void Ethernet::_parseTcpPacket(const std::vector<uint8_t> &packet) {
 						case (TCP_DATA_BUS_CURRENT): {
 							memcpy(&tmpFloat, packet.data() + packetOffset, 4);
 							dataTCP.busCurrent = tmpFloat;
-						} break;
-
-						case (TCP_DATA_LED_STATUS): {
-							memcpy(&tmpUint, packet.data() + packetOffset, 4);
-							dataTCP.ledStatus = tmpUint;
 						} break;
 
 						case (TCP_DATA_BUTTON_STATUS): {

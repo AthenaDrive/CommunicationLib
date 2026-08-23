@@ -108,7 +108,7 @@ struct CommandUDP {
 #define TCP_DATA                              0 << 0
 #define TCP_DATA_BUS_VOLTAGE                  1 << 1
 #define TCP_DATA_BUS_CURRENT                  1 << 2
-#define TCP_DATA_LED_STATUS                   1 << 3
+
 #define TCP_DATA_BUTTON_STATUS                1 << 4
 #define TCP_DATA_CURRENT_LIMIT_BUS            1 << 5
 #define TCP_DATA_CURRENT_LIMIT_PHASE          1 << 6
@@ -124,9 +124,8 @@ struct DataTCP {
 
 	std::optional<float> busVoltage;
 	std::optional<float> busCurrent;
-	std::optional<uint32_t> ledStatus;
-	std::optional<uint32_t> buttonStatus;
 
+	std::optional<uint32_t> buttonStatus;
 	std::optional<float> currentLimitBus;
 	std::optional<float> currentLimitPhase;
 	std::optional<uint32_t> boardState;
@@ -168,6 +167,7 @@ struct DataTCP {
 #define TCP_COMMAND_POLE_PAIRS                1 << 18
 #define TCP_COMMAND_UDP_DATA_CONFIG           1 << 19
 #define TCP_COMMAND_CLEAR_ERROR_REGISTER      1 << 20
+#define TCP_COMMAND_LED_STATUS                1 << 21
 
 struct CommandTCP {
 	int32_t motorIx = -1;
@@ -196,6 +196,7 @@ struct CommandTCP {
 	std::optional<uint32_t> polePairs;
 	std::optional<uint32_t> udpDataConfig;
 	std::optional<uint32_t> confirmErrorCode;
+	std::optional<uint32_t> ledStatus;
 
 	std::optional<float> debugFloat0;
 	std::optional<float> debugFloat1;

@@ -57,7 +57,7 @@ PYBIND11_MODULE(EthernetPython, m) {
 	m.attr("TCP_DATA") = TCP_DATA;
 	m.attr("TCP_DATA_BUS_VOLTAGE") = TCP_DATA_BUS_VOLTAGE;
 	m.attr("TCP_DATA_BUS_CURRENT") = TCP_DATA_BUS_CURRENT;
-	m.attr("TCP_DATA_LED_STATUS") = TCP_DATA_LED_STATUS;
+
 	m.attr("TCP_DATA_BUTTON_STATUS") = TCP_DATA_BUTTON_STATUS;
 	m.attr("TCP_DATA_CURRENT_LIMIT_BUS") = TCP_DATA_CURRENT_LIMIT_BUS;
 	m.attr("TCP_DATA_CURRENT_LIMIT_PHASE") = TCP_DATA_CURRENT_LIMIT_PHASE;
@@ -89,6 +89,7 @@ PYBIND11_MODULE(EthernetPython, m) {
 	m.attr("TCP_COMMAND_POLE_PAIRS") = TCP_COMMAND_POLE_PAIRS;
 	m.attr("TCP_COMMAND_UDP_DATA_CONFIG") = TCP_COMMAND_UDP_DATA_CONFIG;
 	m.attr("TCP_COMMAND_CLEAR_ERROR_REGISTER") = TCP_COMMAND_CLEAR_ERROR_REGISTER;
+	m.attr("TCP_COMMAND_LED_STATUS") = TCP_COMMAND_LED_STATUS;
 
 	py::class_<DataUDP>(m, "DataUDP")
 		.def(py::init<>())
@@ -148,7 +149,6 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("motorIx", &DataTCP::motorIx)
 		.def_readwrite("busVoltage", &DataTCP::busVoltage)
 		.def_readwrite("busCurrent", &DataTCP::busCurrent)
-		.def_readwrite("ledStatus", &DataTCP::ledStatus)
 		.def_readwrite("buttonStatus", &DataTCP::buttonStatus)
 		.def_readwrite("currentLimitBus", &DataTCP::currentLimitBus)
 		.def_readwrite("currentLimitPhase", &DataTCP::currentLimitPhase)
@@ -190,6 +190,7 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("polePairs", &CommandTCP::polePairs)
 		.def_readwrite("udpDataConfig", &CommandTCP::udpDataConfig)
 		.def_readwrite("confirmErrorCode", &CommandTCP::confirmErrorCode)
+		.def_readwrite("ledStatus", &CommandTCP::ledStatus)
 		.def_readwrite("debugFloat0", &CommandTCP::debugFloat0)
 		.def_readwrite("debugFloat1", &CommandTCP::debugFloat1)
 		.def_readwrite("debugFloat2", &CommandTCP::debugFloat2)
