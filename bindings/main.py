@@ -14,6 +14,11 @@ def main():
     ])
     eth.addTCPPacket(packet)
 
+    packet = eth.getTcpCommandPacket([
+        ([EthernetPython.TCP_COMMAND_DRIVING_MODE], [0b101])
+    ])
+    eth.addTCPPacket(packet)
+
     commandUDP = EthernetPython.CommandUDP()
     commandUDP.motorIx = 0
     commandUDP.torqueSetpoint = 0.0
@@ -27,6 +32,9 @@ def main():
     plotSec = pw.Plot((0.1, 0.60), (0.6, 0.15))
     slide = pw.Slider((0.1, 0.75), (0.6, 0.15))
     slide.changeValues(-10.0, 10.0, 0.0)
+
+    plotPos.setColor("bgColor", (36, 35, 33))
+    plotPos.setColor("plot1", (0, 247, 255))
 
     plotNames = pw.TextBoxes((0.0, 0.0), (0.1, 0.9), labels=["Pos", "Vel", "Acc", "FOC", "Sec", "Torque"])
     plotValues = pw.TextBoxes((0.7, 0.0), (0.3, 0.9), labels = ["Pos: ", "Vel: ", "Acc: ", "FOC: ", "Sec: ", "Torque: "])
@@ -64,6 +72,7 @@ def main():
 
             if (data.position is not None):
                 plotPos.addValue(t, data.position, maxLength=maxPlotLenght)
+                plotPos.addValue(t, 0.01 + data.position, plotIx=1, maxLength=maxPlotLenght)
                 plotValues.setText(f"{data.position:.2f} rad", 0)
 
             if (data.velocity is not None):
@@ -110,7 +119,7 @@ def main():
             ])
             eth.addTCPPacket(packet)
 
-        print(controlManager.getRenderTime())
+        # print(controlManager.getRenderTime())
         controlManager.update()
 
     print("Finishing.")
