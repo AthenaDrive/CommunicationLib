@@ -10,7 +10,7 @@ def main():
     t0 = perf_counter()
 
     packet = eth.getTcpCommandPacket([
-        ([EthernetPython.TCP_COMMAND_UDP_DATA_CONFIG], [0b1111100011110])
+        ([EthernetPython.TCP_COMMAND_UDP_DATA_CONFIG], [0b1111111111110])
     ])
     eth.addTCPPacket(packet)
 
@@ -29,38 +29,30 @@ def main():
     plotVel = pw.Plot((0.1, 0.15), (0.6, 0.15))
     plotAcc = pw.Plot((0.1, 0.30), (0.6, 0.15))
     plotFOC = pw.Plot((0.1, 0.45), (0.6, 0.15))
-    plotSec = pw.Plot((0.1, 0.60), (0.6, 0.15))
-    slide = pw.Slider((0.1, 0.75), (0.6, 0.15))
-    slide.changeValues(-10.0, 10.0, 0.0)
+    plotBusPower = pw.Plot((0.1, 0.60), (0.6, 0.15))
+    plotCurrent = pw.Plot((0.1, 0.75), (0.6, 0.15))
+    slide = pw.Slider((0.1, 0.9), (0.6, 0.10))
+    slide.changeValues(-50.0, 50.0, 0.0)
 
-    plotPos.setColor("bgColor", (36, 35, 33))
-    plotPos.setColor("plot1", (0, 247, 255))
+    plotNames = pw.TextBoxes((0.0, 0.0), (0.1, 0.9), labels=["Pos", "Vel", "Acc", "FOC", "Bus Power", "Phase Current"])
+    plotValues = pw.TextBoxes((0.7, 0.0), (0.3, 0.9), labels = ["Pos: ", "Vel: ", "Acc: ", "FOC: ", "Watts: ", "Phase A: "])
 
-    plotNames = pw.TextBoxes((0.0, 0.0), (0.1, 0.9), labels=["Pos", "Vel", "Acc", "FOC", "Sec", "Torque"])
-    plotValues = pw.TextBoxes((0.7, 0.0), (0.3, 0.9), labels = ["Pos: ", "Vel: ", "Acc: ", "FOC: ", "Sec: ", "Torque: "])
-
-    prevValue = 0
-    ledValue = 0
-    led0 = pw.ToggleButton((0.0, 0.9), (0.2, 0.1))
-    led1 = pw.ToggleButton((0.2, 0.9), (0.2, 0.1))
-    led2 = pw.ToggleButton((0.4, 0.9), (0.2, 0.1))
-
-    light1 = pw.ToggleButton((0.8, 0.9), (0.1, 0.1))
-    light2 = pw.ToggleButton((0.9, 0.9), (0.1, 0.1))
+    torqueName = pw.TextBox((0.0, 0.9), (0.1, 0.1))
+    torqueValue = pw.TextBox((0.7, 0.9), (0.3, 0.1))
+    torqueName.setText("Torque: ")
 
     controlManager["plotPos"] = plotPos
     controlManager["plotVel"] = plotVel
     controlManager["plotAcc"] = plotAcc
     controlManager["plotFOC"] = plotFOC
-    controlManager["plotSec"] = plotSec
+    controlManager["plotBus"] = plotBusPower
+    controlManager["plotCurrent"] = plotCurrent
     controlManager["slide"] = slide
     controlManager["plotNames"] = plotNames
     controlManager["plotValues"] = plotValues
-    controlManager["led0"] = led0
-    controlManager["led1"] = led1
-    controlManager["led2"] = led2
-    controlManager["light1"] = light1
-    controlManager["light2"] = light2
+
+    controlManager["torqueName"] = torqueName
+    controlManager["torqueValue"] = torqueValue
 
     prevTCPAsk = t0
     while (controlManager.isRunning()):
@@ -72,7 +64,6 @@ def main():
 
             if (data.position is not None):
                 plotPos.addValue(t, data.position, maxLength=maxPlotLenght)
-                plotPos.addValue(t, 0.01 + data.position, plotIx=1, maxLength=maxPlotLenght)
                 plotValues.setText(f"{data.position:.2f} rad", 0)
 
             if (data.velocity is not None):
@@ -87,30 +78,25 @@ def main():
                 plotFOC.addValue(t, data.loopTimeFOC, maxLength=maxPlotLenght)
                 plotValues.setText(f"{data.loopTimeFOC:.0f} us", 3)
 
-            if (data.loopTimeSecondary is not None):
-                plotSec.addValue(t, data.loopTimeSecondary, maxLength=maxPlotLenght)
-                plotValues.setText(f"{data.loopTimeSecondary:.0f} us", 4)
+            if (data.busVoltage is not None) and (data.busCurrent is not None):
+                plotBusPower.addValue(t, data.busVoltage * data.busCurrent, maxLength=maxPlotLenght)
+                plotValues.setText(f"{data.busVoltage * data.busCurrent:.3f} W", 4)
+
+                print(f"Voltage: {data.busVoltage} | Current: {data.busCurrent}")
+
+            if (data.phaseCurrentA is not None) and (data.phaseCurrentB is not None) and (data.phaseCurrentC is not None):
+                plotCurrent.addValue(t, data.phaseCurrentA, plotIx=0, maxLength=100)
+                plotCurrent.addValue(t, data.phaseCurrentB, plotIx=1, maxLength=100)
+                plotCurrent.addValue(t, data.phaseCurrentC, plotIx=2, maxLength=100)
+                plotValues.setText(f"{data.phaseCurrentA:.0f} A", 5)
 
         dataTCPList = eth.getTCPPacket()
         for packet in dataTCPList:
-
-            if packet.buttonStatus is not None:
-                b = packet.buttonStatus
-                light1.setValue(b & 1)
-                light2.setValue(b & 2)
-
+            pass
 
         commandUDP.torqueSetpoint = slide.getValue()
-        plotValues.setText(f"{commandUDP.torqueSetpoint:.2f} xNm", 5)
+        torqueValue.setText(f"{commandUDP.torqueSetpoint:.2f} xNm")
         eth.setUDPCommand([commandUDP])
-
-        ledValue = led0.getValue() * 4 + led1.getValue() * 2 + led2.getValue() * 1
-        if (ledValue != prevValue):
-            packet = eth.getTcpCommandPacket([
-                ([EthernetPython.TCP_COMMAND_LED_STATUS], [ledValue])
-            ])
-            eth.addTCPPacket(packet)
-            prevValue = ledValue
 
         if (perf_counter() - prevTCPAsk) > 0.1:
             prevTCPAsk = perf_counter()
