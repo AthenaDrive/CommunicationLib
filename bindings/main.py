@@ -6,25 +6,25 @@ import pg_widgets as pw
 
 
 MAX_VAL_TUNING_ROWS = 10
-I_TERM_MULT = 0.001
+I_TERM_MULT = 0.00001
 # Each row on the tuning tab: (row name, [(label, TCP command bit, min, max, initial value)])
 TUNING_ROWS = [
     ("Torque", [
         ("Torque Kp", EthernetPython.TCP_COMMAND_TORQUE_KP, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
-        ("Torque Kd", EthernetPython.TCP_COMMAND_TORQUE_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
         ("Torque Ki", EthernetPython.TCP_COMMAND_TORQUE_KI, 0.0, MAX_VAL_TUNING_ROWS * I_TERM_MULT, 0.0),
+        ("Torque Kd", EthernetPython.TCP_COMMAND_TORQUE_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
         ("Torque limit", EthernetPython.TCP_COMMAND_TORQUE_LIMIT, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
     ]),
     ("Velocity", [
         ("Velocity Kp", EthernetPython.TCP_COMMAND_VELOCITY_KP, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
-        ("Velocity Kd", EthernetPython.TCP_COMMAND_VELOCITY_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
         ("Velocity Ki", EthernetPython.TCP_COMMAND_VELOCITY_KI, 0.0, MAX_VAL_TUNING_ROWS * I_TERM_MULT, 0.0),
+        ("Velocity Kd", EthernetPython.TCP_COMMAND_VELOCITY_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
         ("Velocity limit", EthernetPython.TCP_COMMAND_VELOCITY_LIMIT, 0.0, 100.0, 0.0),
     ]),
     ("Position", [
         ("Position Kp", EthernetPython.TCP_COMMAND_POSITION_KP, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
-        ("Position Kd", EthernetPython.TCP_COMMAND_POSITION_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
         ("Position Ki", EthernetPython.TCP_COMMAND_POSITION_KI, 0.0, MAX_VAL_TUNING_ROWS * I_TERM_MULT, 0.0),
+        ("Position Kd", EthernetPython.TCP_COMMAND_POSITION_KD, 0.0, MAX_VAL_TUNING_ROWS, 0.0),
     ]),
     ("Limits", [
         ("Bus current limit", EthernetPython.TCP_COMMAND_CURRENT_LIMIT_BUS, 0.0, 100.0, 0.0),
@@ -32,7 +32,7 @@ TUNING_ROWS = [
     ]),
 ]
 
-MAXIMA_VAL_SETPOINTS = 30
+MAXIMA_VAL_SETPOINTS = 100
 # UDP setpoints on the tuning tab: (label, slider min, slider max, initial value)
 UDP_SETPOINTS = [
     ("Torque setpoint", -MAXIMA_VAL_SETPOINTS, MAXIMA_VAL_SETPOINTS, 0.0),
@@ -90,7 +90,7 @@ def main():
     t0 = perf_counter()
 
     packet = eth.getTcpCommandPacket([
-        ([EthernetPython.TCP_COMMAND_UDP_DATA_CONFIG], [0b1111111111110])
+        ([EthernetPython.TCP_COMMAND_UDP_DATA_CONFIG], [0b1111000000000001111111111110])
     ])
     eth.addTCPPacket(packet)
 
@@ -120,7 +120,7 @@ def main():
     plotBusPower = pw.Plot((0.1, plotTop + 4.0 * plotHeight), (0.6, plotHeight))
     plotCurrent = pw.Plot((0.1, plotTop + 5.0 * plotHeight), (0.6, plotHeight))
     slide = pw.Slider((0.1, 0.885), (0.6, 0.06))
-    slide.changeValues(-50.0, 50.0, 0.0)
+    slide.changeValues(-MAXIMA_VAL_SETPOINTS, MAXIMA_VAL_SETPOINTS, 0.0)
 
     plotNames = pw.TextBoxes((0.0, plotTop), (0.1, 6 * plotHeight),
         labels=["Pos", "Vel", "Acc", "FOC", "Bus Power", "Phase Current"])
@@ -338,6 +338,14 @@ def main():
                 plotCurrent.addValue(t, data.phaseCurrentC, plotIx=2, maxLength=100)
                 plotValues.setText(f"{data.phaseCurrentA:.2f} | {data.phaseCurrentB:.2f} | {data.phaseCurrentC:.2f}", 5)
 
+            if (data.debugFloat0 is not None) and (data.debugFloat1 is not None) and (data.debugFloat2 is not None) and (data.debugFloat3 is not None):
+                f0 = data.debugFloat0
+                f1 = data.debugFloat1
+                f2 = data.debugFloat2
+                f3 = data.debugFloat3
+
+                # print(f"0 / Ref: {f0} | 1 / Measured: {f1} | 2 / vq (%): {f2} | 3 / Saturation: {f3}")
+
         for packet in eth.getTCPPacket():
             if (packet.boardState is not None):
                 statusBoard.setText(f"Board state: {packet.boardState}")
@@ -348,6 +356,9 @@ def main():
             if (packet.checkErrorCode is not None):
                 lastErrorCode = packet.checkErrorCode
                 statusError.setText(f"Error: {packet.checkErrorCode}")
+
+            if (packet.temperature is not None):
+                print(f"Temperature: {packet.temperature} C.")
 
         # Keep the dashboard torque slider and the tuning-tab torque setpoint
         # slider in sync, whichever one the user is moving.
@@ -381,6 +392,7 @@ def main():
                 EthernetPython.TCP_DATA_ERROR_REGISTER,
                 EthernetPython.TCP_DATA_CURRENT_LIMIT_BUS,
                 EthernetPython.TCP_DATA_CURRENT_LIMIT_PHASE,
+                EthernetPython.TCP_DATA_TEMPERATURE,
             ]])
             eth.addTCPPacket(packet)
 
