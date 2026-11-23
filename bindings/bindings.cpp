@@ -66,6 +66,7 @@ PYBIND11_MODULE(EthernetPython, m) {
 	m.attr("TCP_DATA_POLE_PAIRS") = TCP_DATA_POLE_PAIRS;
 	m.attr("TCP_DATA_PHASE_RMS_VOLTAGE") = TCP_DATA_PHASE_RMS_VOLTAGE;
 	m.attr("TCP_DATA_ERROR_REGISTER") = TCP_DATA_ERROR_REGISTER;
+	m.attr("TCP_DATA_TEMPERATURE") = TCP_DATA_TEMPERATURE;
 
 	// TCP COMMANDS
 	m.attr("TCP_COMMAND") = TCP_COMMAND;
@@ -157,6 +158,7 @@ PYBIND11_MODULE(EthernetPython, m) {
 		.def_readwrite("polePairs", &DataTCP::polePairs)
 		.def_readwrite("phaseRmsVoltage", &DataTCP::phaseRmsVoltage)
 		.def_readwrite("checkErrorCode", &DataTCP::checkErrorCode)
+		.def_readwrite("temperature", &DataTCP::temperature)
 		.def_readwrite("debugFloat0", &DataTCP::debugFloat0)
 		.def_readwrite("debugFloat1", &DataTCP::debugFloat1)
 		.def_readwrite("debugFloat2", &DataTCP::debugFloat2)
