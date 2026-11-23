@@ -1,2 +1,3 @@
 cmake-*
 .idea
+bindings/tuning_parameters.json*

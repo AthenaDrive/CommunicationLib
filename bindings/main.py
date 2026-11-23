@@ -1,4 +1,7 @@
+import json
+import math
 import struct
+from pathlib import Path
 from time import perf_counter
 
 import EthernetPython
@@ -45,6 +48,21 @@ TUNING_BOTTOM = 0.85
 
 INITIAL_DRIVING_MODE = 0b101
 
+# Tab order used by the main loop to decide which tab owns the UDP setpoints.
+TAB_PLOTS = 0
+TAB_TUNING = 1
+TAB_SWEEP = 2
+
+# Position sweep on the "Sweep" tab: one full turn forward, then back.
+SWEEP_RADIANS = 2.0 * math.pi
+SWEEP_SPEED_MIN = 0.05
+SWEEP_SPEED_MAX = 10.0
+SWEEP_SPEED_DEFAULT = 1.0
+SWEEP_MAX_DT = 0.1
+
+# Saved next to this script so the tuning values survive between runs.
+TUNING_FILE = Path(__file__).with_name("tuning_parameters.json")
+
 
 class TuningRow(pw.TuningSliders):
     """TuningSliders with larger labels and recovery from invalid text."""
@@ -82,6 +100,48 @@ class TuningRow(pw.TuningSliders):
 def _floatToBits(value):
     """Convert a Python float to the raw uint32 sent over the wire."""
     return struct.unpack("<I", struct.pack("<f", float(value)))[0]
+
+
+def loadTuningValues():
+    """Load saved tuning values as a {label: value} dict, ignoring invalid entries."""
+    try:
+        with TUNING_FILE.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        return {}
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"Could not load tuning parameters from {TUNING_FILE}: {error}")
+        return {}
+
+    saved = data.get("tuning") if isinstance(data, dict) else None
+    if not isinstance(saved, dict):
+        print(f"Ignoring malformed tuning parameter file {TUNING_FILE}")
+        return {}
+
+    values = {}
+    for _, params in TUNING_ROWS:
+        for label, _, lower, upper, _ in params:
+            value = saved.get(label)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            if not math.isfinite(value):
+                continue
+
+            values[label] = min(max(float(value), lower), upper)
+
+    return values
+
+
+def saveTuningValues(values):
+    """Save tuning values to disk, replacing the previous file atomically."""
+    tempFile = TUNING_FILE.with_name(TUNING_FILE.name + ".tmp")
+    try:
+        with tempFile.open("w", encoding="utf-8") as file:
+            json.dump({"version": 1, "tuning": values}, file, indent=2, sort_keys=True)
+            file.write("\n")
+        tempFile.replace(TUNING_FILE)
+    except OSError as error:
+        print(f"Could not save tuning parameters to {TUNING_FILE}: {error}")
 
 
 def main():
@@ -230,13 +290,28 @@ def main():
         for label, bit, *_ in params:
             lastAppliedTuning[bit] = row[f"slider{label}"].getValue()
 
-    def sendTuning(onlyChanged, _=None):
+    # Restore saved tuning values into the sliders. They are uploaded below,
+    # just like pressing "Apply tuning".
+    loadedTuning = loadTuningValues()
+    for row, params in tuningRows.values():
+        for label, _, lower, upper, _ in params:
+            if label not in loadedTuning:
+                continue
+
+            value = loadedTuning[label]
+            row[f"slider{label}"].changeValues(lower, upper, value)
+            row[f"value{label}"].setText(f"{value:.8f}")
+
+    def sendTuning(onlyChanged, _=None, onlyLabels=None):
         headerBits = []
         values = []
         newValues = {}
 
         for row, params in tuningRows.values():
             for label, bit, *_ in params:
+                if (onlyLabels is not None) and (label not in onlyLabels):
+                    continue
+
                 value = row[f"slider{label}"].getValue()
 
                 if onlyChanged and value == lastAppliedTuning[bit]:
@@ -288,31 +363,152 @@ def main():
     buttonSendMode.setFunction(sendDrivingMode)
     buttonClearErrors.setFunction(clearErrors)
 
+    if loadedTuning:
+        sendTuning(onlyChanged=False, onlyLabels=loadedTuning)
+        commandStatus.setText(f"Loaded {len(loadedTuning)} saved tuning parameters")
+
+    # -----------------------------------------------------------------------
+    # Sweep tab
+    # -----------------------------------------------------------------------
+    sweep = pw.UIGroup((0.0, 0.0), (1.0, 1.0))
+
+    sweepTitle = pw.TextBox((0.02, 0.02), (0.96, 0.06))
+    sweepTitle.setText("Position sweep: one full turn forward, then back (2 pi rad)")
+    sweepTitle.disableSelection()
+
+    sweepStatus = pw.TextBox((0.02, 0.10), (0.96, 0.06))
+    sweepStatus.setText("Sweep: stopped - press Start")
+    sweepStatus.disableSelection()
+
+    sweepSpeedLabel = pw.TextBox((0.02, 0.18), (0.12, 0.07))
+    sweepSpeedLabel.setText("Speed:")
+    sweepSpeedLabel.disableSelection()
+
+    sweepSpeedSlider = pw.Slider((0.14, 0.18), (0.45, 0.07))
+    sweepSpeedSlider.changeValues(SWEEP_SPEED_MIN, SWEEP_SPEED_MAX, SWEEP_SPEED_DEFAULT)
+
+    sweepSpeedValue = pw.TextBox((0.60, 0.18), (0.20, 0.07))
+    sweepSpeedValue.setText(f"{SWEEP_SPEED_DEFAULT:.2f} rad/s")
+    sweepSpeedValue.disableSelection()
+
+    sweepStartStopButton = pw.Button((0.81, 0.18), (0.17, 0.07))
+    sweepStartStopButton.setText("Start sweep")
+
+    sweepSetpointValue = pw.TextBox((0.02, 0.27), (0.31, 0.06))
+    sweepSetpointValue.setText("Setpoint: 0.00 rad")
+    sweepSetpointValue.disableSelection()
+
+    sweepMeasuredValue = pw.TextBox((0.34, 0.27), (0.31, 0.06))
+    sweepMeasuredValue.setText("Measured: -")
+    sweepMeasuredValue.disableSelection()
+
+    sweepTurnTimeValue = pw.TextBox((0.66, 0.27), (0.32, 0.06))
+    sweepTurnTimeValue.setText(f"Turn time: {SWEEP_RADIANS / SWEEP_SPEED_DEFAULT:.1f} s")
+    sweepTurnTimeValue.disableSelection()
+
+    sweepPlot = pw.Plot((0.02, 0.36), (0.96, 0.62))
+    sweepPlot.setTitle("Position sweep (green: command, cyan: measured)")
+    sweepPlot.setXLabel("t (s)")
+    sweepPlot.setYLabel("rad")
+    sweepPlot.setColor("plot1", (0, 247, 255))
+    # sweepPlot.setBounds(y_low=-1.0, y_high=SWEEP_RADIANS + 1.0)
+
+    sweep["title"] = sweepTitle
+    sweep["status"] = sweepStatus
+    sweep["speedLabel"] = sweepSpeedLabel
+    sweep["speedSlider"] = sweepSpeedSlider
+    sweep["speedValue"] = sweepSpeedValue
+    sweep["startStop"] = sweepStartStopButton
+    sweep["setpoint"] = sweepSetpointValue
+    sweep["measured"] = sweepMeasuredValue
+    sweep["turnTime"] = sweepTurnTimeValue
+    sweep["plot"] = sweepPlot
+
+    # Sweep state. The position is relative to the measured position when the
+    # sweep is started, so pressing Start does not command a jump.
+    sweepRunning = False
+    sweepTravel = 0.0
+    sweepBase = 0.0
+    sweepPosition = 0.0
+    lastMeasuredPosition = None
+
+    def setSweepRunning(running, statusText):
+        nonlocal sweepRunning
+        sweepRunning = running
+        sweepStartStopButton.setText("Stop sweep" if running else "Start sweep")
+        sweepStatus.setText(statusText)
+
+    def toggleSweep(_=None):
+        nonlocal sweepTravel, sweepBase, sweepPosition
+
+        if sweepRunning:
+            setSweepRunning(False, "Sweep: stopped (holding position)")
+            return
+
+        sweepBase = lastMeasuredPosition if lastMeasuredPosition is not None else 0.0
+        sweepTravel = 0.0
+        sweepPosition = sweepBase
+        # sweepPlot.setBounds(y_low=sweepBase - 1.0, y_high=sweepBase + SWEEP_RADIANS + 1.0)
+        setSweepRunning(True, "Sweep: running (forward)")
+
+    sweepStartStopButton.setFunction(toggleSweep)
+
     # -----------------------------------------------------------------------
     # Tabs
     # -----------------------------------------------------------------------
-    tabs = pw.Tab((0.0, 0.0), (1.0, 1.0), [dashboard, tuning], names=["Plots", "Tuning"])
+    tabs = pw.Tab((0.0, 0.0), (1.0, 1.0), [dashboard, tuning, sweep],
+        names=["Plots", "Tuning", "Sweep"])
 
     # The stock Tab uses 5%-wide buttons. Widen them so the labels stay legible.
-    for i in range(2):
+    for i in range(3):
         button = tabs[f"button{i + 1}"]
-        button._pos = (0.80 + 0.10 * i, 0.95)
+        button._pos = (0.70 + 0.10 * i, 0.95)
         button._size = (0.10, 0.05)
 
     controlManager["tabs"] = tabs
 
     prevDashboardTorque = slide.getValue()
     prevTuningTorque = setpointSliders[torqueSetpointLabel].getValue()
+    prevActiveTab = tabs.getActiveTab()
+    prevLoopTime = t0
 
     prevTCPAsk = t0
     while (controlManager.isRunning()):
         t = perf_counter() - t0
+        dt = min(max(t - prevLoopTime, 0.0), SWEEP_MAX_DT)
+        prevLoopTime = t
+
+        activeTab = tabs.getActiveTab()
+
+        # Switching tabs changes which tab owns the UDP setpoints. Stop the
+        # sweep when leaving its tab, and carry its last position into the
+        # tuning position slider so switching back does not command a jump.
+        if activeTab != prevActiveTab:
+            if prevActiveTab == TAB_SWEEP:
+                if sweepRunning:
+                    setSweepRunning(False, "Sweep: stopped (left tab)")
+
+                setpointSliders[positionSetpointLabel].setValue(sweepPosition)
+                setpointRow[f"value{positionSetpointLabel}"].setText(f"{sweepPosition:.2f}")
+
+            if activeTab == TAB_SWEEP:
+                setSweepRunning(False, "Sweep: stopped - press Start")
+
+                sweepBase = lastMeasuredPosition if lastMeasuredPosition is not None else 0.0
+                sweepTravel = 0.0
+                sweepPosition = sweepBase
+                # sweepPlot.setBounds(
+                #     y_low=sweepBase - 1.0,
+                #     y_high=sweepBase + SWEEP_RADIANS + 1.0)
+
+            prevActiveTab = activeTab
 
         dataUDPList = eth.getUDPData()
         if (len(dataUDPList) != 0):
             data = dataUDPList[0]
 
             if (data.position is not None):
+                lastMeasuredPosition = data.position
                 plotPos.addValue(t, data.position, maxLength=maxPlotLength)
                 plotValues.setText(f"{data.position:.2f} rad", 0)
 
@@ -376,9 +572,48 @@ def main():
         prevDashboardTorque = dashboardTorque
         prevTuningTorque = tuningTorque
 
-        commandUDP.torqueSetpoint = dashboardTorque
-        commandUDP.velocitySetpoint = setpointSliders[velocitySetpointLabel].getValue()
-        commandUDP.positionSetpoint = setpointSliders[positionSetpointLabel].getValue()
+        # Advance and display the position sweep. It only moves while the
+        # Sweep tab is active and running.
+        sweepSpeed = sweepSpeedSlider.getValue()
+        secondsPerTurn = SWEEP_RADIANS / sweepSpeed
+
+        if (activeTab == TAB_SWEEP) and sweepRunning:
+            sweepTravel += sweepSpeed * dt
+            phase = sweepTravel % (2.0 * SWEEP_RADIANS)
+
+            if phase <= SWEEP_RADIANS:
+                sweepPosition = sweepBase + phase
+                sweepStatus.setText("Sweep: running (forward)")
+            else:
+                sweepPosition = sweepBase + (2.0 * SWEEP_RADIANS - phase)
+                sweepStatus.setText("Sweep: running (back)")
+
+        if activeTab == TAB_SWEEP:
+            sweepPlot.addValue(t, sweepPosition, plotIx=0, maxLength=200)
+            if lastMeasuredPosition is not None:
+                sweepPlot.addValue(t, lastMeasuredPosition, plotIx=1, maxLength=200)
+
+        sweepSpeedValue.setText(f"{sweepSpeed:.2f} rad/s")
+        sweepTurnTimeValue.setText(f"Turn time: {secondsPerTurn:.1f} s")
+        sweepSetpointValue.setText(f"Setpoint: {sweepPosition:.2f} rad")
+        if lastMeasuredPosition is not None:
+            sweepMeasuredValue.setText(f"Measured: {lastMeasuredPosition:.2f} rad")
+
+        # Only the active tab is allowed to drive the UDP setpoints. Tabs that
+        # do not expose a particular setpoint send a neutral value instead of
+        # letting a hidden slider change it.
+        if activeTab == TAB_PLOTS:
+            commandUDP.torqueSetpoint = dashboardTorque
+            commandUDP.velocitySetpoint = 0.0
+            commandUDP.positionSetpoint = 0.0
+        elif activeTab == TAB_TUNING:
+            commandUDP.torqueSetpoint = tuningTorque
+            commandUDP.velocitySetpoint = setpointSliders[velocitySetpointLabel].getValue()
+            commandUDP.positionSetpoint = setpointSliders[positionSetpointLabel].getValue()
+        else:
+            commandUDP.torqueSetpoint = 0.0
+            commandUDP.velocitySetpoint = 0.0
+            commandUDP.positionSetpoint = sweepPosition
 
         torqueValue.setText(f"{commandUDP.torqueSetpoint:.2f} xNm")
         eth.setUDPCommand([commandUDP])
@@ -398,6 +633,13 @@ def main():
 
         controlManager.update()
 
+    # The window was closed, so persist the current tuning values.
+    tuningValues = {}
+    for row, params in tuningRows.values():
+        for label, *_ in params:
+            tuningValues[label] = row[f"slider{label}"].getValue()
+
+    saveTuningValues(tuningValues)
     print("Finishing.")
 
 
